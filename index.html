@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0078D4">
   <title>Schüler-Aufgaben</title>
   <style>
     body {
@@ -69,19 +67,8 @@
     .task-date { width: 8em; font-size: 0.9em; flex-shrink: 0; }
     .task-icon { width: 1.5em; margin-right: 0.5em; }
     .task-content { flex-grow: 1; }
-    .task-actions {
-      margin-left: 0.5em;
-      display: flex;
-      align-items: center;
-    }
-    .task-actions button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      margin-left: 0.5em;
-      font-size: 1.2em;
-      color: #555;
-    }
+    .task-actions { margin-left: 0.5em; display: flex; align-items: center; }
+    .task-actions button { background: none; border: none; cursor: pointer; margin-left: 0.5em; font-size: 1.2em; color: #555; }
     .due-soon  { background: #FFF8E1; }
     .overdue   { border: 1px solid #E81123; }
     .done      { text-decoration: line-through; opacity: 0.6; }
@@ -98,7 +85,7 @@
   </style>
 </head>
 <body>
-<img src="assets/logo-huttwil.svg" alt="Schullogo Huttwil" class="school-logo-student">
+  <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo Huttwil" class="school-logo-student">
   <div class="page-title">Hausaufgabenübersicht</div>
   <div class="header">
     <button id="tab-today">Heute</button>
@@ -115,19 +102,19 @@
   </div>
 
   <script>
-    const webdavUrl  = 'https://meine-schule.ch/remote.php/webdav/tafel/';
+    const webdavUrl = 'https://meine-schule.ch/remote.php/webdav/tafel/';
     const authHeader = 'Basic ' + btoa('SCHUELER_NUTZER:PASSWORT');
-    const MONATE     = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+    const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 
     function formatDateDE(d) {
       const [y,m,day] = d.split('-');
-      return `${parseInt(day)}. ${MONATE[parseInt(m)-1]} ${y}`;
+      return `${parseInt(day,10)}. ${MONATE[parseInt(m,10)-1]} ${y}`;
     }
 
     let currentTab = 'all';
-    document.getElementById('tab-today').onclick = ()=>{ currentTab='today';  loadTasks(); };
-    document.getElementById('tab-all').onclick   = ()=>{ currentTab='all';    loadTasks(); };
-    document.getElementById('tab-done').onclick  = ()=>{ currentTab='done';   loadTasks(); };
+    document.getElementById('tab-today').addEventListener('click', ()=>{ currentTab='today';  loadTasks(); });
+    document.getElementById('tab-all').addEventListener('click',   ()=>{ currentTab='all';    loadTasks(); });
+    document.getElementById('tab-done').addEventListener('click',  ()=>{ currentTab='done';   loadTasks(); });
 
     document.getElementById('btn-font-lg').onclick   = ()=> document.body.style.fontSize='115%';
     document.getElementById('btn-font-sm').onclick   = ()=> document.body.style.fontSize='90%';
@@ -139,56 +126,51 @@
       const res = await fetch(webdavUrl, { method:'PROPFIND', headers:{ 'Authorization': authHeader, 'Depth':'1' } });
       const xml = new DOMParser().parseFromString(await res.text(),'application/xml');
       const files = Array.from(xml.querySelectorAll('response'))
-        .map(r=>r.querySelector('href').textContent.replace(/\\/$/, ''))
-        .filter(h=>h.endsWith('.json'))
-        .map(h=>decodeURIComponent(h.split('/').pop()));
+        .map(r => r.querySelector('href').textContent.replace(//$/, ''))
+        .filter(h => h.endsWith('.json'))
+        .map(h => decodeURIComponent(h.split('/').pop()));
 
       const tasks = [];
       for (let file of files) {
-        let r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader } });
-        let entry = await r2.json();
-        if (!entry.deleted) tasks.push({...entry, filename:file});
+        const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader }});
+        const entry = await r2.json();
+        if (!entry.deleted) tasks.push({ ...entry, filename: file });
       }
 
       const now = new Date();
-      const tomorrow = new Date(); tomorrow.setDate(now.getDate()+1);
-      tasks.sort((a,b)=> new Date(a.date) - new Date(b.date));
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      tasks.sort((a,b) => new Date(a.date) - new Date(b.date));
 
       for (let t of tasks) renderTask(t, now, tomorrow);
     }
 
     function renderTask(task, now, tomorrow) {
-      const li = document.createElement('li'); li.className='task';
+      const li = document.createElement('li'); li.className = 'task';
       const dt = new Date(task.date);
       if (task.done) li.classList.add('done');
-      else if (dt.toDateString()===now.toDateString() || dt.toDateString()===tomorrow.toDateString()) li.classList.add('due-soon');
+      else if (dt.toDateString() === now.toDateString() || dt.toDateString() === tomorrow.toDateString()) li.classList.add('due-soon');
       else if (dt < now) li.classList.add('overdue');
 
       const dateSpan = document.createElement('span');
-      dateSpan.className='task-date';
+      dateSpan.className = 'task-date';
       dateSpan.textContent = formatDateDE(task.date);
       li.appendChild(dateSpan);
 
-      const icon = document.createElement('span');
-      icon.className='task-icon';
-      icon.textContent='📘';
+      const icon = document.createElement('span'); icon.className = 'task-icon'; icon.textContent = '📘';
       li.appendChild(icon);
 
-      const content = document.createElement('div');
-      content.className='task-content';
+      const content = document.createElement('div'); content.className = 'task-content';
       content.textContent = task.title + (task.comment ? ' – ' + task.comment : '');
       li.appendChild(content);
 
-      const actions = document.createElement('div');
-      actions.className='task-actions';
-      const chk = document.createElement('input');
-      chk.type='checkbox'; chk.checked=task.done;
-      chk.onchange = ()=> toggleDone(task.filename, chk.checked);
+      const actions = document.createElement('div'); actions.className = 'task-actions';
+      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = task.done;
+      chk.onchange = () => toggleDone(task.filename, chk.checked);
       actions.appendChild(chk);
 
-      const del = document.createElement('button');
-      del.innerHTML='🗑️'; del.title='Löschen';
-      del.onclick = ()=> deleteTask(task.filename);
+      const del = document.createElement('button'); del.innerHTML = '🗑️'; del.title = 'Löschen';
+      del.onclick = () => deleteTask(task.filename);
       actions.appendChild(del);
 
       li.appendChild(actions);
@@ -196,26 +178,21 @@
     }
 
     async function toggleDone(file, done) {
-      let r = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader } });
-      let entry = await r.json(); entry.done = done;
-      let blob = new Blob([JSON.stringify(entry,null,2)],{type:'application/json'});
-      await fetch(webdavUrl + encodeURIComponent(file),{ method:'PUT', headers:{ 'Authorization': authHeader }, body:blob });
+      const r = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader }});
+      const entry = await r.json(); entry.done = done;
+      const blob = new Blob([JSON.stringify(entry, null, 2)], { type: 'application/json' });
+      await fetch(webdavUrl + encodeURIComponent(file), { method: 'PUT', headers:{ 'Authorization': authHeader }, body: blob });
       loadTasks();
     }
 
     async function deleteTask(file) {
       if (!confirm('Eintrag wirklich löschen?')) return;
-      await fetch(webdavUrl + encodeURIComponent(file),{ method:'DELETE', headers:{ 'Authorization': authHeader }});
+      await fetch(webdavUrl + encodeURIComponent(file), { method: 'DELETE', headers:{ 'Authorization': authHeader }});
       loadTasks();
     }
 
     // Initial
     loadTasks();
   </script>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
-</script>
 </body>
 </html>
