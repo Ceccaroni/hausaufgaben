@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -67,22 +66,77 @@
     async function loadTasks() {
       const listEl = document.getElementById('task-list');
       listEl.innerHTML = '';
-      const res = await fetch(webdavUrl, { method: 'PROPFIND', headers: { 'Authorization': authHeader, 'Depth': '1' } });
-      const xml = new DOMParser().parseFromString(await res.text(), 'application/xml');
-      const files = Array.from(xml.querySelectorAll('response'))
-        .map(r => {
+      let files = [];
+      try {
+        // PROPFIND über WebDAV (falls konfiguriert)
+        const res = await fetch(webdavUrl, {
+          method: 'PROPFIND',
+          headers: { 'Authorization': authHeader, 'Depth': '1' }
+        });
+        if (!res.ok) throw new Error('WebDAV nicht erreichbar');
+        const xmlText = await res.text();
+        const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+        const responses = xml.querySelectorAll('response');
+        responses.forEach(r => {
           let href = r.querySelector('href').textContent;
           if (href.endsWith('/')) href = href.slice(0, -1);
-          return decodeURIComponent(href.split('/').pop());
-        })
-        .filter(h => h.endsWith('.json'));
+          const name = decodeURIComponent(href.split('/').pop());
+          if (name.endsWith('.json')) files.push(name);
+        });
+      } catch (e) {
+        console.warn('WebDAV-Ladefehler:', e);
+        // Fallback: keine Dateien
+        files = [];
+      }
+      
+      // Dummy-Daten, wenn keine Verbindung besteht
+      if (files.length === 0) {
+        listEl.innerHTML = '<li>Keine Verbindung zum Server. Test-Daten anzeigen.</li>';
+        return;
+      }
 
       const tasks = [];
-      for (let file of files) {
+      for (const file of files) {
+        try {
+          const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
+          const entry = await r2.json();
+          if (!entry.deleted) tasks.push({ ...entry, filename: file });
+        } catch (e) {
+          console.warn('Eintrag konnte nicht geladen werden:', file, e);
+        }
+      }
+
+      tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
+      tasks.forEach(t => renderTask(t, new Date(t.date), null));
+    }
+      });
+      const xmlText = await res.text();
+      const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+      
+      // Alle RESPONSE-Knoten sammeln
+      const responses = xml.querySelectorAll('response');
+      const files = [];
+      responses.forEach(r => {
+        let href = r.querySelector('href').textContent;
+        if (href.endsWith('/')) href = href.slice(0, -1);
+        const name = decodeURIComponent(href.split('/').pop());
+        if (name.endsWith('.json')) files.push(name);
+      });
+
+      // Einträge holen
+      const tasks = [];
+      for (const file of files) {
         const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
         const entry = await r2.json();
         if (!entry.deleted) tasks.push({ ...entry, filename: file });
       }
+
+      // Sortierung: aufsteigend nach Datum
+      tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Rendern
+      tasks.forEach(t => renderTask(t, new Date(t.date), null));
+    }
 
       const now = new Date();
       const tomorrow = new Date(now);
