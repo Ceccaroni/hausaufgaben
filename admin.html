@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Wandtafel Eintrag</title>
+  <style>
+    /* Grundlayout */
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background-color: #E6F5FF;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: 2em auto;
+      background: #fff;
+      padding: 2em;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .school-logo {
+      display: block;
+      margin: 0 auto 1em;
+      max-height: 60px;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    /* Formular */
+    .entry-form label {
+      display: block;
+      margin-bottom: 0.5em;
+      font-weight: 600;
+    }
+    .entry-form input[type="date"],
+    .entry-form input[type="time"],
+    .entry-form input[type="file"],
+    .entry-form textarea {
+      width: 100%;
+      padding: 0.5em;
+      border: 1px solid #CBD4E1;
+      border-radius: 4px;
+      margin-bottom: 1em;
+      background: #F8FBFF;
+      box-sizing: border-box;
+    }
+    .entry-form input[type="checkbox"] {
+      margin-right: 0.5em;
+    }
+    .entry-form button {
+      background-color: #0078D4;
+      color: #fff;
+      border: none;
+      padding: 0.75em 1.5em;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .entry-form button:hover {
+      background-color: #005A9E;
+    }
+    #time-container {
+      display: none;
+    }
+
+    /* Übersichtsliste */
+    .entries {
+      margin-top: 2em;
+    }
+    .entries ul {
+      list-style: none;
+      padding: 0;
+    }
+    .entries li {
+      border-bottom: 1px solid #CBD4E1;
+      padding: 1em 0;
+    }
+    .entry-meta {
+      font-size: 0.9em;
+      color: #555;
+      margin-bottom: 0.5em;
+    }
+    .entry-text {
+      margin-bottom: 0.5em;
+    }
+    .entry-attachments a {
+      margin-right: 0.5em;
+      text-decoration: none;
+      font-size: 0.9em;
+      color: #0078D4;
+    }
+    .entry-actions button {
+      margin-right: 0.5em;
+      padding: 0.3em 0.6em;
+      font-size: 0.85em;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .btn-edit   { background: #FFC107; }
+    .btn-delete { background: #E81123; }
+    .btn-archiv { background: #107C10; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo Huttwil" class="school-logo">
+
+    <h1>Neuer Eintrag</h1>
+    <form class="entry-form" onsubmit="return false;">
+      <label for="entry-date">Datum</label>
+      <input type="date" id="entry-date" required>
+
+      <div>
+        <input type="checkbox" id="add-timestamp">
+        <label for="add-timestamp" style="display:inline; font-weight:normal;">Zeitstempel hinzufügen</label>
+      </div>
+
+      <div id="time-container">
+        <label for="entry-time">Zeit</label>
+        <input type="time" id="entry-time">
+      </div>
+
+      <label for="entry-text">Eintrag</label>
+      <textarea id="entry-text" rows="4" required></textarea>
+
+      <label for="entry-files">Dateien (optional)</label>
+      <input type="file" id="entry-files" multiple>
+
+      <button id="submit-entry">Anzeigen &amp; hochladen</button>
+    </form>
+
+    <div class="entries">
+      <h2>Aktuelle Aufgaben und Termine</h2>
+      <ul id="entries-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    // WebDAV-Konfiguration (bitte ersetzen)
+    const webdavUrl = 'https://meine-schule.ch/remote.php/webdav/tafel/';
+    const archiveUrl = webdavUrl + 'archiv/';
+    const username = 'DEIN_BENUTZERNAME';
+    const password = 'DEIN_PASSWORT';
+    const authHeader = 'Basic ' + btoa(username + ':' + password);
+
+    // Monatsnamen
+    const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+    function formatDateDE(dateStr) {
+      const [y,m,d] = dateStr.split('-');
+      return `${parseInt(d,10)}. ${MONATE[parseInt(m,10)-1]} ${y}`;
+    }
+
+    // Toggle Zeit-Feld
+    document.getElementById('add-timestamp').addEventListener('change', function() {
+      const tc = document.getElementById('time-container');
+      if (this.checked) {
+        tc.style.display = 'block';
+        const now = new Date();
+        document.getElementById('entry-time').value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      } else {
+        tc.style.display = 'none';
+      }
+    });
+
+    // Validierung und Speichern
+    document.getElementById('submit-entry').addEventListener('click', async () => {
+      const inputDate = document.getElementById('entry-date').value;
+      const selected = new Date(inputDate);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      if (selected < today) {
+        alert('Datum liegt in der Vergangenheit.');
+        return;
+      }
+      await saveEntry();
+      await loadEntries();
+    });
+
+    async function saveEntry() {
+      const date = document.getElementById('entry-date').value;
+      let name = date;
+      if (document.getElementById('add-timestamp').checked) {
+        name += '_' + document.getElementById('entry-time').value.replace(':','');
+      }
+      const filename = name + '.json';
+      const entry = { date, time: document.getElementById('add-timestamp').checked ? document.getElementById('entry-time').value : null, text: document.getElementById('entry-text').value, attachments: [] };
+      for (let file of document.getElementById('entry-files').files) {
+        const attName = name + '_' + file.name;
+        entry.attachments.push(attName);
+        await fetch(webdavUrl + encodeURIComponent(attName), { method: 'PUT', headers: { 'Authorization': authHeader }, body: file });
+      }
+      const blob = new Blob([JSON.stringify(entry, null, 2)], { type: 'application/json' });
+      await fetch(webdavUrl + encodeURIComponent(filename), { method: 'PUT', headers: { 'Authorization': authHeader }, body: blob });
+    }
+
+    async function loadEntries() {
+      const list = document.getElementById('entries-list');
+      list.innerHTML = '';
+      const res = await fetch(webdavUrl, { method: 'PROPFIND', headers: { 'Authorization': authHeader, 'Depth': '1' }});
+      const xml = new DOMParser().parseFromString(await res.text(), 'application/xml');
+      const files = Array.from(xml.querySelectorAll('response')).map(r => r.querySelector('href').textContent.replace(/\/$/, '')).filter(h => h.endsWith('.json')).map(h => decodeURIComponent(h.split('/').pop()));
+      const entries = [];
+      for (let file of files) {
+        const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader }});
+        entries.push({ filename: file, entry: await r2.json() });
+      }
+      // Sortierung aufsteigend (früheste Termine oben)
+      entries.sort((a, b) => new Date(a.entry.date + 'T' + (a.entry.time||'00:00')) - new Date(b.entry.date + 'T' + (b.entry.time||'00:00')));
+      for (let item of entries) renderEntry(item.filename, item.entry);
+    }
+
+    function renderEntry(filename, entry) {
+      const li = document.createElement('li');
+      const meta = document.createElement('div'); meta.className = 'entry-meta'; meta.textContent = formatDateDE(entry.date) + (entry.time ? ' ' + entry.time : ''); li.appendChild(meta);
+      const txt = document.createElement('div'); txt.className = 'entry-text'; txt.textContent = entry.text; li.appendChild(txt);
+      if (entry.attachments.length) {
+        const attDiv = document.createElement('div'); attDiv.className = 'entry-attachments';
+        entry.attachments.forEach(a => { const link = document.createElement('a'); link.href = webdavUrl + encodeURIComponent(a); link.target='_blank'; link.textContent = a.split('_').pop(); attDiv.appendChild(link); });
+        li.appendChild(attDiv);
+      }
+      const act = document.createElement('div'); act.className = 'entry-actions';
+      const btnEdit = document.createElement('button'); btnEdit.className='btn-edit'; btnEdit.textContent='Bearbeiten'; btnEdit.addEventListener('click',()=>editEntry(filename,entry)); act.appendChild(btnEdit);
+      const btnDel = document.createElement('button'); btnDel.className='btn-delete'; btnDel.textContent='Löschen'; btnDel.addEventListener('click',()=>deleteEntry(filename)); act.appendChild(btnDel);
+      const btnArch = document.createElement('button'); btnArch.className='btn-archiv'; btnArch.textContent='Archiv'; btnArch.addEventListener('click',()=>archiveEntry(filename)); act.appendChild(btnArch);
+      li.appendChild(act);
+      document.getElementById('entries-list').appendChild(li);
+    }
+
+    function editEntry(filename, entry) {
+      document.getElementById('entry-date').value = entry.date;
+      if (entry.time) { document.getElementById('add-timestamp').checked=true; document.getElementById('time-container').style.display='block'; document.getElementById('entry-time').value = entry.time; }
+      else { document.getElementById('add-timestamp').checked=false; document.getElementById('time-container').style.display='none'; }
+      document.getElementById('entry-text').value = entry.text;
+      document.getElementById('entry-files').value = '';
+    }
+
+    async function deleteEntry(filename) {
+      if (!confirm('Eintrag wirklich löschen?')) return;
+      await fetch(webdavUrl + encodeURIComponent(filename), { method: 'DELETE', headers: { 'Authorization': authHeader }});
+      await loadEntries();
+    }
+
+    async function archiveEntry(filename) {
+      await fetch(webdavUrl + encodeURIComponent(filename), { method: 'MOVE', headers: { 'Authorization': authHeader, 'Destination': archiveUrl + encodeURIComponent(filename) }});
+      await loadEntries();
+    }
+
+    // Initiales Laden
+    loadEntries();
+  </script>
+</body>
+</html>
