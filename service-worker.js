@@ -1,10 +1,9 @@
 const CACHE = 'hausaufgaben-v1';
 const assets = [
-  './',
-  './index.html',
-  './manifest.json',
-  './service-worker.js',
-  './assets/logo-huttwil.svg'
+  'index.html',
+  'manifest.json',
+  'service-worker.js',
+  'assets/logo-huttwil.svg'
 ];
 self.addEventListener('install', e =>
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(assets)))
