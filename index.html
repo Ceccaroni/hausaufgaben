@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -5,83 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Schüler-Aufgaben</title>
   <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #E6F5FF;
-      color: #333;
-      font-size: 100%;
-    }
-    .school-logo-student {
-      display: block;
-      margin: 1em auto 0.5em;
-      max-height: 50px;
-    }
-    .page-title {
-      text-align: center;
-      font-size: 1.5em;
-      margin: 0.5em 0;
-      font-weight: 600;
-    }
-    .header {
-      background: #0078D4;
-      padding: 0.5em;
-      color: #fff;
-      display: flex;
-      justify-content: space-around;
-    }
-    .header button {
-      background: none;
-      border: none;
-      color: inherit;
-      font-size: 1em;
-      cursor: pointer;
-    }
-    .container {
-      max-width: 700px;
-      margin: 0 auto 1em;
-      background: #fff;
-      padding: 1.5em;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .settings {
-      text-align: right;
-      margin-bottom: 1em;
-    }
-    .settings button {
-      margin-left: 0.5em;
-      padding: 0.3em 0.6em;
-      border: 1px solid #CBD4E1;
-      border-radius: 4px;
-      background: #F8FBFF;
-      cursor: pointer;
-    }
-    ul.task-list { list-style: none; padding: 0; }
-    li.task {
-      display: flex;
-      align-items: center;
-      border-bottom: 1px solid #CBD4E1;
-      padding: 0.5em 0;
-    }
-    .task-date { width: 8em; font-size: 0.9em; flex-shrink: 0; }
-    .task-icon { width: 1.5em; margin-right: 0.5em; }
-    .task-content { flex-grow: 1; }
-    .task-actions { margin-left: 0.5em; display: flex; align-items: center; }
-    .task-actions button { background: none; border: none; cursor: pointer; margin-left: 0.5em; font-size: 1.2em; color: #555; }
-    .due-soon  { background: #FFF8E1; }
-    .overdue   { border: 1px solid #E81123; }
-    .done      { text-decoration: line-through; opacity: 0.6; }
-    @media (max-width: 600px) {
-      body { font-size: 115%; }
-      .task-date { width: 6em; }
-      .header { flex-direction: column; align-items: center; }
-      .header button { margin: 0.2em; }
-    }
-    @media (max-width: 900px) {
-      body { font-size: 110%; }
-      .task-date { width: 7em; }
-    }
+    body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:#E6F5FF; color:#333; font-size:100%; }
+    .school-logo-student { display:block; margin:1em auto .5em; max-height:50px; }
+    .page-title { text-align:center; font-size:1.5em; margin:.5em 0; font-weight:600; }
+    .header { background:#0078D4; padding:.5em; color:#fff; display:flex; justify-content:space-around; }
+    .header button { background:none; border:none; color:inherit; font-size:1em; cursor:pointer; }
+    .container { max-width:700px; margin:0 auto 1em; background:#fff; padding:1.5em; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+    .settings { text-align:right; margin-bottom:1em; }
+    .settings button { margin-left:.5em; padding:.3em .6em; border:1px solid #CBD4E1; border-radius:4px; background:#F8FBFF; cursor:pointer; }
+    ul.task-list { list-style:none; padding:0; }
+    li.task { display:flex; align-items:center; border-bottom:1px solid #CBD4E1; padding:.5em 0; }
+    .task-date { width:8em; font-size:.9em; flex-shrink:0; }
+    .task-icon { width:1.5em; margin-right:.5em; }
+    .task-content { flex-grow:1; }
+    .task-actions { margin-left:.5em; display:flex; align-items:center; }
+    .task-actions button { background:none; border:none; cursor:pointer; margin-left:.5em; font-size:1.2em; color:#555; }
+    .due-soon { background:#FFF8E1; }
+    .overdue { border:1px solid #E81123; }
+    .done { text-decoration:line-through; opacity:.6; }
+    @media (max-width:600px) { body{font-size:115%;} .task-date{width:6em;} .header{flex-direction:column;align-items:center;} .header button{margin:.2em;} }
+    @media (max-width:900px) { body{font-size:110%;} .task-date{width:7em;} }
   </style>
 </head>
 <body>
@@ -112,27 +56,30 @@
     }
 
     let currentTab = 'all';
-    document.getElementById('tab-today').addEventListener('click', ()=>{ currentTab='today';  loadTasks(); });
-    document.getElementById('tab-all').addEventListener('click',   ()=>{ currentTab='all';    loadTasks(); });
-    document.getElementById('tab-done').addEventListener('click',  ()=>{ currentTab='done';   loadTasks(); });
+    document.getElementById('tab-today').onclick = () => { currentTab = 'today'; loadTasks(); };
+    document.getElementById('tab-all').onclick   = () => { currentTab = 'all';   loadTasks(); };
+    document.getElementById('tab-done').onclick  = () => { currentTab = 'done';  loadTasks(); };
 
-    document.getElementById('btn-font-lg').onclick   = ()=> document.body.style.fontSize='115%';
-    document.getElementById('btn-font-sm').onclick   = ()=> document.body.style.fontSize='90%';
-    document.getElementById('btn-contrast').onclick  = ()=> document.body.classList.toggle('high-contrast');
+    document.getElementById('btn-font-lg').onclick  = () => document.body.style.fontSize = '115%';
+    document.getElementById('btn-font-sm').onclick  = () => document.body.style.fontSize = '90%';
+    document.getElementById('btn-contrast').onclick = () => document.body.classList.toggle('high-contrast');
 
     async function loadTasks() {
       const listEl = document.getElementById('task-list');
       listEl.innerHTML = '';
-      const res = await fetch(webdavUrl, { method:'PROPFIND', headers:{ 'Authorization': authHeader, 'Depth':'1' } });
-      const xml = new DOMParser().parseFromString(await res.text(),'application/xml');
+      const res = await fetch(webdavUrl, { method: 'PROPFIND', headers: { 'Authorization': authHeader, 'Depth': '1' } });
+      const xml = new DOMParser().parseFromString(await res.text(), 'application/xml');
       const files = Array.from(xml.querySelectorAll('response'))
-        .map(r => r.querySelector('href').textContent.replace(//$/, ''))
-        .filter(h => h.endsWith('.json'))
-        .map(h => decodeURIComponent(h.split('/').pop()));
+        .map(r => {
+          let href = r.querySelector('href').textContent;
+          if (href.endsWith('/')) href = href.slice(0, -1);
+          return decodeURIComponent(href.split('/').pop());
+        })
+        .filter(h => h.endsWith('.json'));
 
       const tasks = [];
       for (let file of files) {
-        const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader }});
+        const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
         const entry = await r2.json();
         if (!entry.deleted) tasks.push({ ...entry, filename: file });
       }
@@ -140,9 +87,9 @@
       const now = new Date();
       const tomorrow = new Date(now);
       tomorrow.setDate(now.getDate() + 1);
-      tasks.sort((a,b) => new Date(a.date) - new Date(b.date));
+      tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      for (let t of tasks) renderTask(t, now, tomorrow);
+      tasks.forEach(t => renderTask(t, now, tomorrow));
     }
 
     function renderTask(task, now, tomorrow) {
@@ -178,16 +125,16 @@
     }
 
     async function toggleDone(file, done) {
-      const r = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader }});
+      const r = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
       const entry = await r.json(); entry.done = done;
       const blob = new Blob([JSON.stringify(entry, null, 2)], { type: 'application/json' });
-      await fetch(webdavUrl + encodeURIComponent(file), { method: 'PUT', headers:{ 'Authorization': authHeader }, body: blob });
+      await fetch(webdavUrl + encodeURIComponent(file), { method: 'PUT', headers: { 'Authorization': authHeader }, body: blob });
       loadTasks();
     }
 
     async function deleteTask(file) {
       if (!confirm('Eintrag wirklich löschen?')) return;
-      await fetch(webdavUrl + encodeURIComponent(file), { method: 'DELETE', headers:{ 'Authorization': authHeader }});
+      await fetch(webdavUrl + encodeURIComponent(file), { method: 'DELETE', headers: { 'Authorization': authHeader } });
       loadTasks();
     }
 
