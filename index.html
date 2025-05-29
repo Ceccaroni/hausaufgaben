@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schüler-Aufgaben</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #E6F5FF;
+      color: #333;
+      font-size: 100%;
+    }
+    .school-logo-student {
+      display: block;
+      margin: 1em auto 0.5em;
+      max-height: 50px;
+    }
+    .page-title {
+      text-align: center;
+      font-size: 1.5em;
+      margin: 0.5em 0;
+      font-weight: 600;
+    }
+    .header {
+      background: #0078D4;
+      padding: 0.5em;
+      color: #fff;
+      display: flex;
+      justify-content: space-around;
+    }
+    .header button {
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto 1em;
+      background: #fff;
+      padding: 1.5em;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .settings {
+      text-align: right;
+      margin-bottom: 1em;
+    }
+    .settings button {
+      margin-left: 0.5em;
+      padding: 0.3em 0.6em;
+      border: 1px solid #CBD4E1;
+      border-radius: 4px;
+      background: #F8FBFF;
+      cursor: pointer;
+    }
+    ul.task-list { list-style: none; padding: 0; }
+    li.task {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #CBD4E1;
+      padding: 0.5em 0;
+    }
+    .task-date { width: 8em; font-size: 0.9em; flex-shrink: 0; }
+    .task-icon { width: 1.5em; margin-right: 0.5em; }
+    .task-content { flex-grow: 1; }
+    .task-actions {
+      margin-left: 0.5em;
+      display: flex;
+      align-items: center;
+    }
+    .task-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-left: 0.5em;
+      font-size: 1.2em;
+      color: #555;
+    }
+    .due-soon  { background: #FFF8E1; }
+    .overdue   { border: 1px solid #E81123; }
+    .done      { text-decoration: line-through; opacity: 0.6; }
+    @media (max-width: 600px) {
+      body { font-size: 115%; }
+      .task-date { width: 6em; }
+      .header { flex-direction: column; align-items: center; }
+      .header button { margin: 0.2em; }
+    }
+    @media (max-width: 900px) {
+      body { font-size: 110%; }
+      .task-date { width: 7em; }
+    }
+  </style>
+</head>
+<body>
+  <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg"
+       alt="Schullogo Huttwil" class="school-logo-student">
+  <div class="page-title">Hausaufgabenübersicht</div>
+  <div class="header">
+    <button id="tab-today">Heute</button>
+    <button id="tab-all">Alle Aufgaben</button>
+    <button id="tab-done">Erledigt</button>
+  </div>
+  <div class="container">
+    <div class="settings">
+      <button id="btn-font-lg">A+</button>
+      <button id="btn-font-sm">A-</button>
+      <button id="btn-contrast">Kontrast</button>
+    </div>
+    <ul class="task-list" id="task-list"></ul>
+  </div>
+
+  <script>
+    const webdavUrl  = 'https://meine-schule.ch/remote.php/webdav/tafel/';
+    const authHeader = 'Basic ' + btoa('SCHUELER_NUTZER:PASSWORT');
+    const MONATE     = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+    function formatDateDE(d) {
+      const [y,m,day] = d.split('-');
+      return `${parseInt(day)}. ${MONATE[parseInt(m)-1]} ${y}`;
+    }
+
+    let currentTab = 'all';
+    document.getElementById('tab-today').onclick = ()=>{ currentTab='today';  loadTasks(); };
+    document.getElementById('tab-all').onclick   = ()=>{ currentTab='all';    loadTasks(); };
+    document.getElementById('tab-done').onclick  = ()=>{ currentTab='done';   loadTasks(); };
+
+    document.getElementById('btn-font-lg').onclick   = ()=> document.body.style.fontSize='115%';
+    document.getElementById('btn-font-sm').onclick   = ()=> document.body.style.fontSize='90%';
+    document.getElementById('btn-contrast').onclick  = ()=> document.body.classList.toggle('high-contrast');
+
+    async function loadTasks() {
+      const listEl = document.getElementById('task-list');
+      listEl.innerHTML = '';
+      const res = await fetch(webdavUrl, { method:'PROPFIND', headers:{ 'Authorization': authHeader, 'Depth':'1' } });
+      const xml = new DOMParser().parseFromString(await res.text(),'application/xml');
+      const files = Array.from(xml.querySelectorAll('response'))
+        .map(r=>r.querySelector('href').textContent.replace(/\\/$/, ''))
+        .filter(h=>h.endsWith('.json'))
+        .map(h=>decodeURIComponent(h.split('/').pop()));
+
+      const tasks = [];
+      for (let file of files) {
+        let r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader } });
+        let entry = await r2.json();
+        if (!entry.deleted) tasks.push({...entry, filename:file});
+      }
+
+      const now = new Date();
+      const tomorrow = new Date(); tomorrow.setDate(now.getDate()+1);
+      tasks.sort((a,b)=> new Date(a.date) - new Date(b.date));
+
+      for (let t of tasks) renderTask(t, now, tomorrow);
+    }
+
+    function renderTask(task, now, tomorrow) {
+      const li = document.createElement('li'); li.className='task';
+      const dt = new Date(task.date);
+      if (task.done) li.classList.add('done');
+      else if (dt.toDateString()===now.toDateString() || dt.toDateString()===tomorrow.toDateString()) li.classList.add('due-soon');
+      else if (dt < now) li.classList.add('overdue');
+
+      const dateSpan = document.createElement('span');
+      dateSpan.className='task-date';
+      dateSpan.textContent = formatDateDE(task.date);
+      li.appendChild(dateSpan);
+
+      const icon = document.createElement('span');
+      icon.className='task-icon';
+      icon.textContent='📘';
+      li.appendChild(icon);
+
+      const content = document.createElement('div');
+      content.className='task-content';
+      content.textContent = task.title + (task.comment ? ' – ' + task.comment : '');
+      li.appendChild(content);
+
+      const actions = document.createElement('div');
+      actions.className='task-actions';
+      const chk = document.createElement('input');
+      chk.type='checkbox'; chk.checked=task.done;
+      chk.onchange = ()=> toggleDone(task.filename, chk.checked);
+      actions.appendChild(chk);
+
+      const del = document.createElement('button');
+      del.innerHTML='🗑️'; del.title='Löschen';
+      del.onclick = ()=> deleteTask(task.filename);
+      actions.appendChild(del);
+
+      li.appendChild(actions);
+      document.getElementById('task-list').appendChild(li);
+    }
+
+    async function toggleDone(file, done) {
+      let r = await fetch(webdavUrl + encodeURIComponent(file), { headers:{ 'Authorization': authHeader } });
+      let entry = await r.json(); entry.done = done;
+      let blob = new Blob([JSON.stringify(entry,null,2)],{type:'application/json'});
+      await fetch(webdavUrl + encodeURIComponent(file),{ method:'PUT', headers:{ 'Authorization': authHeader }, body:blob });
+      loadTasks();
+    }
+
+    async function deleteTask(file) {
+      if (!confirm('Eintrag wirklich löschen?')) return;
+      await fetch(webdavUrl + encodeURIComponent(file),{ method:'DELETE', headers:{ 'Authorization': authHeader }});
+      loadTasks();
+    }
+
+    // Initial
+    loadTasks();
+  </script>
+</body>
+</html>
