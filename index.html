@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hausaufgaben – Schülerübersicht</title>
+  <title>Hausaufgaben – Schüler:innen-Übersicht</title>
   <style>
     body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#E6F5FF; color:#333; }
     .logo { display:block; margin:1em auto; max-height:50px; }
@@ -11,28 +11,28 @@
     .container { max-width:700px; margin:1em auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.1); padding:1em; }
     .task-form { display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:1em; align-items:center; }
     .task-form select,
-    .task-form input[type="date"],
     .task-form input[type="text"],
+    .task-form input[type="date"],
     .task-form textarea {
       flex:1 1 150px; padding:0.5em; border:1px solid #CBD4E1; border-radius:4px; background:#F8FBFF;
     }
     .task-form select { max-width:200px; }
     .task-form button { background:#0078D4; color:#fff; border:none; padding:0.75em 1em; border-radius:4px; font-size:1rem; cursor:pointer; }
     .task-list { list-style:none; padding:0; margin:0; }
-    .task { display:flex; align-items:flex-start; padding:1em; border-bottom:1px solid #CBD4E1; gap:0.5em; }
+    .task { display:flex; align-items:flex-start; padding:1em; border-bottom:1px solid #CBD4E1; gap:0.5em; position:relative; }
     .task:nth-child(even) { background:#F9FBFD; }
     .task:last-child { border-bottom:none; }
     .date { width:6em; font-size:0.9rem; flex-shrink:0; text-align:left; }
-    .subject { width:5em; flex-shrink:0; font-size:0.9rem; }
-    .content { flex-grow:1; font-size:1rem; }
-    .attachments { display:flex; flex-direction:column; gap:0.25em; margin-top:0.5em; }
+    .subject { width:5em; font-size:0.9rem; flex-shrink:0; }
+    .title { flex-grow:1; font-size:1rem; }
+    .attachments { margin-top:0.5em; padding-left:11em; display:flex; flex-direction:column; gap:0.25em; }
     .attachment { display:flex; align-items:center; gap:0.25em; font-size:0.9rem; }
-    .attachment span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 1.2em); }
-    .icon { width:1.2em; }
-    .checkbox { margin-left:1em; flex-shrink:0; }
-    .trash-button { background:transparent; border:none; font-size:1.2rem; color:#888; padding:0.2em; border-radius:50%; cursor:pointer; transition:background .2s, color .2s; }
-    .trash-button:hover { background:rgba(0,0,0,0.05); color:#333; }
-    .done { background:#DFF5DF; border-left:4px solid #107C10; }
+    .attachment span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%; }
+    .attachment .icon { width:1.2em; }
+    .checkbox { margin-left:0.5em; flex-shrink:0; }
+    .trash-button, .edit-button { background:transparent; border:none; font-size:1.2rem; color:#888; padding:0.2em; border-radius:50%; cursor:pointer; transition:background .2s, color .2s; }
+    .trash-button:hover, .edit-button:hover { background:rgba(0,0,0,0.05); color:#333; }
+    .done { background:#F8FFF8 !important; border-left:4px solid #60B664 !important; }
     .due-soon { background:#FFF8E1; }
     .overdue { border-left:4px solid #E81123; }
     @media(max-width:600px) { body{font-size:115%;} .header{font-size:1.1rem;} .task{padding:0.75em; flex-direction:column; align-items:flex-start;} .task-form{flex-direction:column; align-items:stretch;} }
@@ -65,27 +65,27 @@
     const MONATE=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
     function formatDate(d){const [y,m,day]=d.split('-');return parseInt(day)+'. '+MONATE[parseInt(m)-1]+' '+y;}
     const listEl=document.getElementById('task-list'),form=document.getElementById('task-form'),subjI=document.getElementById('task-subject'),titleI=document.getElementById('task-title'),dateI=document.getElementById('task-date'),descI=document.getElementById('task-desc');
-    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value, title=titleI.value.trim(), date=dateI.value, description=descI.value.trim();if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments:[],origin:'student'};const fn=`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);form.reset();loadTasks();});
+    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value,title=titleI.value.trim(),date=dateI.value,description=descI.value.trim();if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments:[],origin:'student'};const fn=`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);form.reset();loadTasks();});
     async function loadTasks(){listEl.innerHTML='';const items=await loadEntries();items.sort((a,b)=>new Date(a.entry.date)-new Date(b.entry.date));items.forEach(it=>renderEntry(it.filename,it.entry));}
-    function renderEntry(fn,entry){const li=document.createElement('li');li.className='task';
+    function renderEntry(fn,entry){
+      const li=document.createElement('li');li.className='task';
       const dt=new Date(entry.date);
       if(entry.done) li.classList.add('done');
       else {const now=new Date(),tom=new Date(now);tom.setDate(now.getDate()+1);if(dt.toDateString()===now.toDateString()||dt.toDateString()===tom.toDateString())li.classList.add('due-soon');if(dt<now)li.classList.add('overdue');}
       const dateEl=document.createElement('div');dateEl.className='date';dateEl.textContent=formatDate(entry.date);
       const subjEl=document.createElement('div');subjEl.className='subject';subjEl.textContent=entry.subject;
-      const text=entry.text||`${entry.subject}: ${entry.title}${entry.description? ' – '+entry.description:''}`.trim();
-      if(!text)return;const contentEl=document.createElement('div');contentEl.className='content';contentEl.textContent=text;
-      li.append(dateEl,subjEl,contentEl);
-      // Anhänge anzeigen
-      if(Array.isArray(entry.attachments)&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment';const ext=name.split('.').pop().toLowerCase();const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','png','gif','jpeg'].includes(ext)?'🖼️':'📄';const sp=document.createElement('span');sp.textContent=name;sp.title=name;a.append(ic,sp);ad.append(a);});li.append(ad);}
-      // Checkbox
-      const chk=document.createElement('input');chk.type='checkbox';chk.checked=entry.done;chk.className='checkbox';chk.addEventListener('change',async()=>{entry.done=chk.checked;await saveEntry(fn,entry);loadTasks();});
-      li.append(chk);
-      // Trash
-      if(entry.origin==='student'){const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>{deleteEntry(fn).then(loadTasks);});li.append(del);}      
+      const titleEl=document.createElement('div');titleEl.className='title';titleEl.textContent=entry.title;
+      li.append(dateEl,subjEl,titleEl);
+      if(entry.description){const descEl=document.createElement('div');descEl.className='title';descEl.textContent=entry.description;li.append(descEl);}      
+      if(Array.isArray(entry.attachments)&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment';const ext=name.split('.').pop().toLowerCase();const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','png','gif','jpeg'].includes(ext)?'🖼️':'📄';const sp=document.createElement('span');sp.textContent=name;sp.title=name;a.append(ic,sp);ad.append(a);});li.append(ad);}      
+      // Edit button
+      if(entry.origin==='student'){const edit=document.createElement('button');edit.className='edit-button';edit.textContent='✏️';edit.addEventListener('click', ()=>{subjI.value=entry.subject;titleI.value=entry.title;dateI.value=entry.date;descI.value=entry.description||'';form.dataset.editKey=fn;});li.append(edit);}      
+      const chk=document.createElement('input');chk.type='checkbox';chk.checked=entry.done;chk.className='checkbox';chk.addEventListener('change',async()=>{entry.done=chk.checked;await saveEntry(fn,entry);loadTasks();});li.append(chk);
+      const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>deleteEntry(fn).then(loadTasks));li.append(del);
       listEl.appendChild(li);
     }
     loadTasks();
   </script>
 </body>
 </html>
+
