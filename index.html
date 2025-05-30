@@ -167,8 +167,7 @@
     }
 
     function renderEntry(filename, entry) {
-      const li = document.createElement('li');
-      li.className = 'task';
+      const li = document.createElement('li'); li.className='task';
       const dt = new Date(entry.date);
       if (entry.done) li.classList.add('overdue');
       else {
@@ -177,6 +176,43 @@
         if (dt.toDateString()===now.toDateString()||dt.toDateString()===tomorrow.toDateString()) {
           li.classList.add('due-soon');
         }
+      }
+      const dateEl = document.createElement('div'); dateEl.className='date'; dateEl.textContent=formatDate(entry.date);
+      const iconEl = document.createElement('div'); iconEl.className='icon'; iconEl.textContent='📘';
+      // Text zusammensetzen, falls entry.text fehlt
+      let text = entry.text;
+      if ((!text || text.trim() === '') && (entry.subject || entry.title)) {
+        text = `${entry.subject || ''}: ${entry.title || ''}${entry.description ? ' – ' + entry.description : ''}`;
+      }
+      const contentEl = document.createElement('div'); contentEl.className='content'; contentEl.textContent=text;
+      // Anhänge anzeigen, falls vorhanden
+      if (Array.isArray(entry.attachments) && entry.attachments.length) {
+        const attachDiv = document.createElement('div'); attachDiv.className='attachments';
+        entry.attachments.forEach(name => {
+          const a = document.createElement('div'); a.className='attachment';
+          const ext = name.split('.').pop().toLowerCase();
+          const icon = document.createElement('span'); icon.className='icon';
+          icon.textContent = ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄';
+          const span = document.createElement('span'); span.textContent = name; span.title = name;
+          a.append(icon, span);
+          attachDiv.append(a);
+        });
+        li.append(dateEl, iconEl, contentEl, attachDiv);
+      } else {
+        li.append(dateEl, iconEl, contentEl);
+      }
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=entry.done; chk.className='checkbox';
+      chk.addEventListener('change', async () => {
+        entry.done = chk.checked;
+        await saveEntryToStorage(filename, entry);
+        loadTasks();
+      });
+      const delBtn = document.createElement('button'); delBtn.textContent='🗑️'; delBtn.className='checkbox';
+      delBtn.style.marginLeft = '0.5em';
+      delBtn.addEventListener('click', () => deleteTask(filename));
+      li.append(chk, delBtn);
+      listEl.appendChild(li);
+    }
       }
       const dateEl = document.createElement('div'); dateEl.className='date'; dateEl.textContent=formatDate(entry.date);
       const iconEl = document.createElement('div'); iconEl.className='icon'; iconEl.textContent='📘';
