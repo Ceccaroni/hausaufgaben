@@ -146,8 +146,8 @@
       const text = textInput.value.trim();
       if (!date || !text) return;
       const entry = { date, time: null, text, done: false, attachments: [] };
-      const filename = date;
-      await saveEntryToStorage(filename + '.json', entry);
+      const filename = date + '.json';
+      await saveEntryToStorage(filename, entry);
       dateInput.value = '';
       textInput.value = '';
       loadTasks();
