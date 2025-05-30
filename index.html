@@ -9,23 +9,24 @@
     .logo { display:block; margin:1em auto; max-height:50px; }
     .header { text-align:center; padding:1em; background:#0078D4; color:#fff; font-size:1.25rem; font-weight:600; }
     .container { max-width:700px; margin:1em auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.1); padding:1em; }
-    /* Formular */
-    .task-form { display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:1em; align-items:center; }
-    .task-form select,
-    .task-form input[type="text"],
-    .task-form input[type="date"],
-    .task-form textarea {
-      flex:1 1 150px; padding:0.5em; border:1px solid #CBD4E1; border-radius:4px; background:#F8FBFF;
-    }
-    .task-form select { max-width:200px; }
-    .task-form button { background:#0078D4; color:#fff; border:none; padding:0.75em 1em; border-radius:4px; font-size:1rem; cursor:pointer; }
+    /* Formular angeglichen an Admin */
+    .task-form { display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:1em; }
+    .task-form > select,
+    .task-form > input[type="text"],
+    .task-form > input[type="date"] { flex:1 1 calc(33% - .5em); padding:0.5em; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF; font-size:1rem; box-sizing:border-box; }
+    .task-form > textarea { flex:1 1 100%; padding:0.5em; height:80px; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF; font-size:1rem; box-sizing:border-box; }
+    .file-label { flex:1 1 calc(33% - .5em); display:flex; align-items:center; padding:0.5em; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF; cursor:pointer; box-sizing:border-box; }
+    .file-label .icon { font-size:1rem; color:#555; }
+    .file-label span { margin-left:0.5em; font-size:0.9rem; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-label input { display:none; }
+    .task-form > button { flex:1 1 calc(33% - .5em); background:#0078D4; color:#fff; border:none; padding:0.75em; border-radius:6px; font-size:1rem; cursor:pointer; box-sizing:border-box; }
     /* Liste */
     .task-list { list-style:none; padding:0; margin:0; }
-    .task { display:flex; flex-direction:column; border-bottom:1px solid #CBD4E1; background:#fff; box-sizing:border-box; }
+    .task { display:flex; flex-direction:column; border-bottom:1px solid #CBD4E1; box-sizing:border-box; padding-left:0.5em; }
     .task:nth-child(even) { background:#F9FBFD; }
-    .task-header { display:flex; align-items:flex-start; gap:0.5em; padding:1em 0 0.5em 0.5em; }
     .task:last-child { border-bottom:none; }
-    .meta { flex-shrink:0; width:11em; font-size:0.9rem; }
+    .task-header { display:flex; align-items:flex-start; gap:0.5em; padding:1em 0 0.5em; }
+    .meta { width:11em; font-size:0.9rem; flex-shrink:0; }
     .meta .date { display:block; }
     .meta .subject { display:block; font-weight:600; }
     .content { flex-grow:1; font-size:1rem; }
@@ -40,6 +41,7 @@
     .edit-button:hover, .trash-button:hover { background:rgba(0,0,0,0.05); color:#333; }
     /* Status */
     .done .task-header { border-left:4px solid #60B664; background:#F8FFF8; }
+    .done .attachments { opacity:0.6; }
     .due-soon { background:#FFF8E1; }
     .overdue { border-left:4px solid #E81123; }
     /* Preview Overlay */
@@ -66,6 +68,10 @@
       <input type="text" id="task-title" placeholder="Kurztitel" required>
       <input type="date" id="task-date" required>
       <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
+      <label class="file-label">
+        <span class="icon">📎</span><span id="file-names" title="">Datei/Foto auswählen</span>
+        <input id="task-attachments" type="file" multiple>
+      </label>
       <button type="submit">Hinzufügen</button>
     </form>
     <ul class="task-list" id="task-list"></ul>
@@ -87,43 +93,34 @@
     const MONATE=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
     function formatDate(d){const [y,m,day]=d.split('-');return parseInt(day)+'. '+MONATE[parseInt(m)-1]+' '+y;}
 
-    const listEl=document.getElementById('task-list'),form=document.getElementById('task-form'),subjI=document.getElementById('task-subject'),titleI=document.getElementById('task-title'),dateI=document.getElementById('task-date'),descI=document.getElementById('task-desc');
+    const listEl=document.getElementById('task-list'),form=document.getElementById('task-form'),subjI=document.getElementById('task-subject'),titleI=document.getElementById('task-title'),dateI=document.getElementById('task-date'),descI=document.getElementById('task-desc'),attachI=document.getElementById('task-attachments'),fileNames=document.getElementById('file-names');
     let editKey=null;
-    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value,title=titleI.value.trim(),date=dateI.value,description=descI.value.trim();if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments:[],origin:'student'};const fn=editKey||`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);editKey=null;form.reset();loadTasks();});
+    attachI.addEventListener('change',()=>{const files=Array.from(attachI.files);fileNames.textContent=files.map(f=>f.name).join(', ');fileNames.title=files.map(f=>f.name).join('\n');});
+    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value,title=titleI.value.trim(),date=dateI.value,description=descI.value.trim(),attachments=Array.from(attachI.files).map(f=>f.name);if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments,origin:'student'};const fn=editKey||`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);editKey=null;form.reset();fileNames.textContent='Datei/Foto auswählen';loadTasks();});
 
     async function loadTasks(){listEl.innerHTML='';const items=await loadEntries();items.sort((a,b)=>new Date(a.entry.date)-new Date(b.entry.date));items.forEach(it=>renderEntry(it.filename,it.entry));}
-    function deleteTask(fn){if(confirm('Eintrag wirklich löschen?'))deleteEntry(fn).then(loadTasks);}
+    function deleteTask(fn){if(confirm('Eintrag wirklich löschen?'))deleteEntry(fn).then(loadTasks);}   
 
     const prevO=document.getElementById('preview-overlay'),prevC=document.getElementById('preview-content'),prevDl=document.getElementById('preview-download');
     document.getElementById('preview-close').addEventListener('click',()=>prevO.style.display='none');
     function openPreview(url,name){prevC.innerHTML='';prevDl.style.display='none';
-      if(['jpg','jpeg','png','gif'].includes(name.split('.').pop().toLowerCase())){const img=new Image();img.src=url;prevC.append(img);}else{const icon=document.createElement('div');icon.className='file-icon';icon.textContent='📄';prevC.append(icon);}      
-      prevDl.href=url;prevDl.download=name;prevDl.style.display='block';prevO.style.display='flex';}
+      if(['jpg','jpeg','png','gif'].includes(name.split('.').pop().toLowerCase())){const reader=new FileReader();reader.onload=e=>{const img=new Image();img.src=e.target.result;prevC.append(img);prevDl.href=e.target.result;prevDl.download=name;prevDl.style.display='block';};reader.readAsDataURL(attachI.files.find(f=>f.name===name));}else{const icon=document.createElement('div');icon.className='file-icon';icon.textContent='📄';prevC.append(icon);prevDl.href=URL.createObjectURL(new Blob());prevDl.download=name;prevDl.style.display='block';}
+      prevO.style.display='flex';
+    }
 
     function renderEntry(fn,entry){
       const li=document.createElement('li');li.className='task';
       const dt=new Date(entry.date);
       if(entry.done) li.classList.add('done'); else {const now=new Date(),tom=new Date(now);tom.setDate(now.getDate()+1);if(dt.toDateString()===now.toDateString()||dt.toDateString()===tom.toDateString()) li.classList.add('due-soon'); if(dt<now) li.classList.add('overdue');}
-      // Header row
       const header=document.createElement('div');header.className='task-header';
-      const meta=document.createElement('div');meta.className='meta';
-      const dSpan=document.createElement('span');dSpan.className='date';dSpan.textContent=formatDate(entry.date);
-      const sSpan=document.createElement('span');sSpan.className='subject';sSpan.textContent=entry.subject;
-      meta.append(dSpan,sSpan);
-      const content=document.createElement('div');content.className='content';
-      const titleEl=document.createElement('div');titleEl.className='title';titleEl.textContent=entry.title;
-      content.append(titleEl);
-      if(entry.description){const descEl=document.createElement('div');descEl.className='description';descEl.textContent=entry.description;content.append(descEl);}
+      const meta=document.createElement('div');meta.className='meta';const dSpan=document.createElement('span');dSpan.className='date';dSpan.textContent=formatDate(entry.date);const sSpan=document.createElement('span');sSpan.className='subject';sSpan.textContent=entry.subject;meta.append(dSpan,sSpan);
+      const content=document.createElement('div');content.className='content';const titleEl=document.createElement('div');titleEl.className='title';titleEl.textContent=entry.title;content.append(titleEl);if(entry.description){const descEl=document.createElement('div');descEl.className='description';descEl.textContent=entry.description;content.append(descEl);}      
       header.append(meta,content);
-      // Edit button
-      if(entry.origin==='student'){const edit=document.createElement('button');edit.className='edit-button';edit.textContent='✏️';edit.addEventListener('click',()=>{editKey=fn; subjI.value=entry.subject; titleI.value=entry.title; dateI.value=entry.date; descI.value=entry.description||'';});header.append(edit);}
-      // Checkbox
+      if(entry.origin==='student'){const edit=document.createElement('button');edit.className='edit-button';edit.textContent='✏️';edit.addEventListener('click',()=>{editKey=fn; subjI.value=entry.subject; titleI.value=entry.title; dateI.value=entry.date; descI.value=entry.description||'';});header.append(edit);}      
       const chk=document.createElement('input');chk.type='checkbox';chk.checked=entry.done;chk.className='checkbox';chk.addEventListener('change',async()=>{entry.done=chk.checked;await saveEntry(fn,entry);loadTasks();});header.append(chk);
-      // Trash button
-      if(entry.origin==='student'){const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>deleteTask(fn));header.append(del);}
+      const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>deleteTask(fn));header.append(del);
       li.append(header);
-      // Attachments
-      if(Array.isArray(entry.attachments)&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment';const ext=name.split('.').pop().toLowerCase();const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','jpeg','png','gif'].includes(ext)?'🖼️':'📄';const sp=document.createElement('span');sp.textContent=name;sp.title=name;a.append(ic,sp);a.addEventListener('click',()=>openPreview(name,name));ad.append(a);});li.append(ad);}      
+      if(entry.attachments&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment';const ext=name.split('.').pop().toLowerCase();const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','jpeg','png','gif'].includes(ext)?'🖼️':'📄';const sp=document.createElement('span');sp.textContent=name;sp.title=name;a.append(ic,sp);a.addEventListener('click',()=>openPreview(name,name));ad.append(a);});li.append(ad);}      
       listEl.appendChild(li);
     }
     loadTasks();
