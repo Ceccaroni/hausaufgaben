@@ -9,6 +9,7 @@
     .logo { display:block; margin:1em auto; max-height:50px; }
     .header { text-align:center; padding:1em; background:#0078D4; color:#fff; font-size:1.25rem; font-weight:600; }
     .container { max-width:700px; margin:1em auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.1); padding:1em; }
+    /* Formular */
     .task-form { display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:1em; align-items:center; }
     .task-form select,
     .task-form input[type="text"],
@@ -18,24 +19,35 @@
     }
     .task-form select { max-width:200px; }
     .task-form button { background:#0078D4; color:#fff; border:none; padding:0.75em 1em; border-radius:4px; font-size:1rem; cursor:pointer; }
+    /* Liste */
     .task-list { list-style:none; padding:0; margin:0; }
-    .task { display:flex; align-items:flex-start; padding:1em; border-bottom:1px solid #CBD4E1; gap:0.5em; position:relative; }
+    .task { display:flex; align-items:flex-start; padding:1em; border-bottom:1px solid #CBD4E1; gap:0.5em; position:relative; box-sizing:border-box; padding-left:0.5em; }
     .task:nth-child(even) { background:#F9FBFD; }
     .task:last-child { border-bottom:none; }
-    .date { width:6em; font-size:0.9rem; flex-shrink:0; text-align:left; }
-    .subject { width:5em; font-size:0.9rem; flex-shrink:0; }
-    .title { flex-grow:1; font-size:1rem; }
+    .meta { flex-shrink:0; width:11em; font-size:0.9rem; }
+    .meta .date { display:block; }
+    .meta .subject { display:block; font-weight:600; }
+    .content { flex-grow:1; font-size:1rem; }
+    .content .title { font-weight:bold; }
+    .content .description { margin-top:0.25em; color:#555; }
     .attachments { margin-top:0.5em; padding-left:11em; display:flex; flex-direction:column; gap:0.25em; }
     .attachment { display:flex; align-items:center; gap:0.25em; font-size:0.9rem; }
     .attachment span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%; }
     .attachment .icon { width:1.2em; }
-    .checkbox { margin-left:0.5em; flex-shrink:0; }
-    .trash-button, .edit-button { background:transparent; border:none; font-size:1.2rem; color:#888; padding:0.2em; border-radius:50%; cursor:pointer; transition:background .2s, color .2s; }
-    .trash-button:hover, .edit-button:hover { background:rgba(0,0,0,0.05); color:#333; }
-    .done { background:#F8FFF8 !important; border-left:4px solid #60B664 !important; }
+    /* Buttons */
+    .edit-button, .trash-button { background:transparent; border:none; font-size:1.2rem; color:#888; padding:0.2em; border-radius:50%; cursor:pointer; transition:background .2s, color .2s; }
+    .edit-button:hover, .trash-button:hover { background:rgba(0,0,0,0.05); color:#333; }
+    /* Status */
+    .done { background:#fff; border-left:4px solid #60B664; }
     .due-soon { background:#FFF8E1; }
     .overdue { border-left:4px solid #E81123; }
-    @media(max-width:600px) { body{font-size:115%;} .header{font-size:1.1rem;} .task{padding:0.75em; flex-direction:column; align-items:flex-start;} .task-form{flex-direction:column; align-items:stretch;} }
+    /* Preview Overlay */
+    #preview-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:10000; }
+    #preview-modal { background:#fff; border-radius:12px; max-width:80%; max-height:80%; padding:16px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:auto; }
+    #preview-close { position:absolute; top:8px; right:8px; background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#555; }
+    #preview-content img, #preview-content .file-icon { max-width:100%; max-height:70vh; display:block; margin:0 auto; }
+    .download-btn { display:none; margin:12px auto 0; padding:0.5em 1em; background:#007AFF; color:#fff; text-decoration:none; border-radius:8px; font-size:1rem; text-align:center; }
+    @media(max-width:600px){ body{font-size:115%;} .header{font-size:1.1rem;} .task{padding:0.75em; flex-direction:column; align-items:flex-start;} .task-form{flex-direction:column; align-items:stretch;} }
   </style>
 </head>
 <body>
@@ -57,6 +69,15 @@
     </form>
     <ul class="task-list" id="task-list"></ul>
   </div>
+
+  <div id="preview-overlay">
+    <div id="preview-modal">
+      <button id="preview-close">×</button>
+      <div id="preview-content"></div>
+      <a id="preview-download" class="download-btn" href>Download</a>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY='hausaufgaben_entries';
     async function loadEntries(){const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}
@@ -64,28 +85,66 @@
     async function deleteEntry(fn){let l=await loadEntries();l=l.filter(x=>x.filename!==fn);localStorage.setItem(STORAGE_KEY,JSON.stringify(l));}
     const MONATE=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
     function formatDate(d){const [y,m,day]=d.split('-');return parseInt(day)+'. '+MONATE[parseInt(m)-1]+' '+y;}
+
     const listEl=document.getElementById('task-list'),form=document.getElementById('task-form'),subjI=document.getElementById('task-subject'),titleI=document.getElementById('task-title'),dateI=document.getElementById('task-date'),descI=document.getElementById('task-desc');
-    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value,title=titleI.value.trim(),date=dateI.value,description=descI.value.trim();if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments:[],origin:'student'};const fn=`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);form.reset();loadTasks();});
+    let editKey=null;
+    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value,title=titleI.value.trim(),date=dateI.value,description=descI.value.trim();if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments:[],origin:'student'};const fn=editKey||`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);editKey=null;form.reset();loadTasks();});
+
     async function loadTasks(){listEl.innerHTML='';const items=await loadEntries();items.sort((a,b)=>new Date(a.entry.date)-new Date(b.entry.date));items.forEach(it=>renderEntry(it.filename,it.entry));}
+    function deleteTask(fn){if(confirm('Eintrag wirklich löschen?')){deleteEntry(fn).then(loadTasks);} }
+
+    const prevO=document.getElementById('preview-overlay'),prevC=document.getElementById('preview-content'),prevDl=document.getElementById('preview-download');
+    document.getElementById('preview-close').addEventListener('click',()=>prevO.style.display='none');
+    function openPreview(url,name){prevC.innerHTML='';prevDl.style.display='none';
+      if(['jpg','jpeg','png','gif'].includes(name.split('.').pop().toLowerCase())){
+        const img=new Image();img.src=url;prevC.append(img);
+      } else {
+        const icon=document.createElement('div');icon.className='file-icon';icon.textContent='📄';prevC.append(icon);
+      }
+      prevDl.href=url;prevDl.download=name;prevDl.style.display='block';prevO.style.display='flex';
+    }
+
     function renderEntry(fn,entry){
       const li=document.createElement('li');li.className='task';
       const dt=new Date(entry.date);
       if(entry.done) li.classList.add('done');
-      else {const now=new Date(),tom=new Date(now);tom.setDate(now.getDate()+1);if(dt.toDateString()===now.toDateString()||dt.toDateString()===tom.toDateString())li.classList.add('due-soon');if(dt<now)li.classList.add('overdue');}
-      const dateEl=document.createElement('div');dateEl.className='date';dateEl.textContent=formatDate(entry.date);
-      const subjEl=document.createElement('div');subjEl.className='subject';subjEl.textContent=entry.subject;
+      else {const now=new Date(),tom=new Date(now);tom.setDate(now.getDate()+1);
+        if(dt.toDateString()===now.toDateString()||dt.toDateString()===tom.toDateString()) li.classList.add('due-soon');
+        if(dt<now) li.classList.add('overdue');
+      }
+      // Meta
+      const meta=document.createElement('div');meta.className='meta';
+      const dSpan=document.createElement('span');dSpan.className='date';dSpan.textContent=formatDate(entry.date);
+      const sSpan=document.createElement('span');sSpan.className='subject';sSpan.textContent=entry.subject;
+      meta.append(dSpan,sSpan);
+      // Content
+      const content=document.createElement('div');content.className='content';
       const titleEl=document.createElement('div');titleEl.className='title';titleEl.textContent=entry.title;
-      li.append(dateEl,subjEl,titleEl);
-      if(entry.description){const descEl=document.createElement('div');descEl.className='title';descEl.textContent=entry.description;li.append(descEl);}      
-      if(Array.isArray(entry.attachments)&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment';const ext=name.split('.').pop().toLowerCase();const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','png','gif','jpeg'].includes(ext)?'🖼️':'📄';const sp=document.createElement('span');sp.textContent=name;sp.title=name;a.append(ic,sp);ad.append(a);});li.append(ad);}      
-      // Edit button
-      if(entry.origin==='student'){const edit=document.createElement('button');edit.className='edit-button';edit.textContent='✏️';edit.addEventListener('click', ()=>{subjI.value=entry.subject;titleI.value=entry.title;dateI.value=entry.date;descI.value=entry.description||'';form.dataset.editKey=fn;});li.append(edit);}      
-      const chk=document.createElement('input');chk.type='checkbox';chk.checked=entry.done;chk.className='checkbox';chk.addEventListener('change',async()=>{entry.done=chk.checked;await saveEntry(fn,entry);loadTasks();});li.append(chk);
-      const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>deleteEntry(fn).then(loadTasks));li.append(del);
+      content.append(titleEl);
+      if(entry.description){const descEl=document.createElement('div');descEl.className='description';descEl.textContent=entry.description;content.append(descEl);}
+      li.append(meta,content);
+      // Attachments
+      if(Array.isArray(entry.attachments)&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';
+        entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment'; const ext=name.split('.').pop().toLowerCase();
+          const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','jpeg','png','gif'].includes(ext)?'🖼️':'📄';
+          const sp=document.createElement('span');sp.textContent=name;sp.title=name;
+          a.append(ic,sp);
+          a.addEventListener('click',()=>openPreview(name,name));
+          ad.append(a);
+        }); li.append(ad);
+      }
+      // Edit
+      if(entry.origin==='student'){const edit=document.createElement('button');edit.className='edit-button';edit.textContent='✏️';
+        edit.addEventListener('click',()=>{editKey=fn; subjI.value=entry.subject; titleI.value=entry.title; dateI.value=entry.date; descI.value=entry.description||'';}); li.append(edit);
+      }
+      // Checkbox
+      const chk=document.createElement('input');chk.type='checkbox';chk.checked=entry.done;chk.className='checkbox';
+      chk.addEventListener('change',async()=>{entry.done=chk.checked;await saveEntry(fn,entry);loadTasks();});li.append(chk);
+      // Trash
+      if(entry.origin==='student'){const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>deleteTask(fn));li.append(del);}      
       listEl.appendChild(li);
     }
     loadTasks();
   </script>
 </body>
 </html>
-
