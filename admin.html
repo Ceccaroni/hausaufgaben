@@ -107,12 +107,30 @@
 </head>
 <body>
 <body>
-  <script>
-    const pwd = prompt("Admin-Passwort eingeben:");
-    if (pwd !== "gmc666") {
-      alert("Zugang verweigert");
-      window.location.href = "index.html";
-    }
+   <div id="auth-overlay">
+    <div class="auth-modal">
+      <h2>Admin Login</h2>
+      <input type="password" id="admin-password" placeholder="Passwort">
+      <button id="auth-submit">Einloggen</button>
+      <p id="auth-error" style="color:#E81123; display:none; margin-top:1em;">Falsches Passwort</p>
+    </div>
+  </div>
+<script>
+    // Admin-Passwort anpassen
+ const ADMIN_PWD = "DeinGeheimesPasswort";
+    const overlay = document.getElementById('auth-overlay');
+    const input   = document.getElementById('admin-password');
+    const btn     = document.getElementById('auth-submit');
+    const err     = document.getElementById('auth-error');
+
+    btn.addEventListener('click', () => {
+      if (input.value === ADMIN_PWD) {
+        overlay.style.display = 'none';
+        loadEntries(); // Dashboard laden
+      } else {
+        err.style.display = 'block';
+      }
+    });
   </script>
 <div style="text-align:right; margin:0.5em;">
   <a href="index.html"
