@@ -63,6 +63,7 @@
     .checkbox {
       margin-left: 1em;
       flex-shrink: 0;
+      cursor: pointer;
     }
     .due-soon { background: #FFF8E1; }
     .overdue  { border-left: 4px solid #E81123; }
@@ -77,48 +78,88 @@
   <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo" class="logo">
   <div class="header">Hausaufgabenübersicht</div>
   <div class="container">
-    <ul class="task-list" id="task-list">
-      <!-- Dynamisch befüllte Aufgaben -->
-    </ul>
+    <ul class="task-list" id="task-list"></ul>
   </div>
+
   <script>
-    // Dummy-Daten zum Test
-    const tasks = [
-      { date: '2025-05-31', icon: '📘', title: 'Mathematik: Gleichungen', done: false },
-      { date: '2025-06-01', icon: '✏️', title: 'Deutsch: Aufsatz lesen', done: true },
-      { date: '2025-05-30', icon: '🔬', title: 'Biologie: Experiment', done: false }
-    ];
+    // ==== STORAGE-ADAPTER (localStorage-Fallback) ====
+    const STORAGE_KEY = 'hausaufgaben_entries';
+
+    async function loadEntriesFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    async function saveEntryToStorage(filename, entry) {
+      const list = await loadEntriesFromStorage();
+      const idx = list.findIndex(e => e.filename === filename);
+      if (idx >= 0) list[idx].entry = entry;
+      else list.push({ filename, entry });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    async function deleteEntryFromStorage(filename) {
+      let list = await loadEntriesFromStorage();
+      list = list.filter(e => e.filename !== filename);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+    // ==== END STORAGE-ADAPTER ====
+
+    // TEACCH-Test-Daten
     const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
     function formatDate(d) {
       const [y,m,day] = d.split('-');
-      return parseInt(day)+"."+" "+MONATE[parseInt(m)-1]+" "+y;
+      return parseInt(day,10) + '. ' + MONATE[parseInt(m,10)-1] + ' ' + y;
     }
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate()+1);
-    const list = document.getElementById('task-list');
-    tasks.forEach(t => {
+
+    // Initial laden
+    document.addEventListener('DOMContentLoaded', loadEntries);
+
+    async function loadEntries() {
+      const listEl = document.getElementById('task-list');
+      listEl.innerHTML = '';
+      const stored = await loadEntriesFromStorage();
+      stored.sort((a,b) => new Date(a.entry.date) - new Date(b.entry.date));
+      stored.forEach(item => renderEntry(item.filename, item.entry));
+    }
+
+    function renderEntry(filename, entry) {
       const li = document.createElement('li');
       li.className = 'task';
-      const dt = new Date(t.date);
-      if (t.done) li.classList.add('overdue');
-      else if (dt.toDateString()===now.toDateString()||dt.toDateString()===tomorrow.toDateString()) li.classList.add('due-soon');
-      const date = document.createElement('div');
-      date.className='date';
-      date.textContent=formatDate(t.date);
-      const icon = document.createElement('div');
-      icon.className='icon';
-      icon.textContent=t.icon;
-      const content = document.createElement('div');
-      content.className='content';
-      content.textContent=t.title;
+      const dt = new Date(entry.date);
+      const now = new Date();
+      const tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1);
+      if (entry.done) li.classList.add('overdue');
+      else if (dt.toDateString()===now.toDateString() || dt.toDateString()===tomorrow.toDateString()) {
+        li.classList.add('due-soon');
+      }
+
+      const dateEl = document.createElement('div');
+      dateEl.className = 'date';
+      dateEl.textContent = formatDate(entry.date);
+
+      const iconEl = document.createElement('div');
+      iconEl.className = 'icon';
+      iconEl.textContent = entry.icon || '📝';
+
+      const contentEl = document.createElement('div');
+      contentEl.className = 'content';
+      contentEl.textContent = entry.title || entry.text;
+
       const chk = document.createElement('input');
-      chk.type='checkbox';
-      chk.checked=t.done;
-      chk.className='checkbox';
-      li.append(date, icon, content, chk);
-      list.appendChild(li);
-    });
+      chk.type = 'checkbox';
+      chk.checked = entry.done || false;
+      chk.className = 'checkbox';
+      chk.addEventListener('change', async () => {
+        entry.done = chk.checked;
+        await saveEntryToStorage(filename, entry);
+        loadEntries();
+      });
+
+      li.append(dateEl, iconEl, contentEl, chk);
+      listEl.appendChild(li);
+    }
   </script>
 </body>
 </html>
