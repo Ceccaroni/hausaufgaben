@@ -3,197 +3,122 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Schüler-Aufgaben</title>
+  <title>Hausaufgaben – Schülerübersicht</title>
   <style>
-    body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:#E6F5FF; color:#333; font-size:100%; }
-    .school-logo-student { display:block; margin:1em auto .5em; max-height:50px; }
-    .page-title { text-align:center; font-size:1.5em; margin:.5em 0; font-weight:600; }
-    .header { background:#0078D4; padding:.5em; color:#fff; display:flex; justify-content:space-around; }
-    .header button { background:none; border:none; color:inherit; font-size:1em; cursor:pointer; }
-    .container { max-width:700px; margin:0 auto 1em; background:#fff; padding:1.5em; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
-    .settings { text-align:right; margin-bottom:1em; }
-    .settings button { margin-left:.5em; padding:.3em .6em; border:1px solid #CBD4E1; border-radius:4px; background:#F8FBFF; cursor:pointer; }
-    ul.task-list { list-style:none; padding:0; }
-    li.task { display:flex; align-items:center; border-bottom:1px solid #CBD4E1; padding:.5em 0; }
-    .task-date { width:8em; font-size:.9em; flex-shrink:0; }
-    .task-icon { width:1.5em; margin-right:.5em; }
-    .task-content { flex-grow:1; }
-    .task-actions { margin-left:.5em; display:flex; align-items:center; }
-    .task-actions button { background:none; border:none; cursor:pointer; margin-left:.5em; font-size:1.2em; color:#555; }
-    .due-soon { background:#FFF8E1; }
-    .overdue { border:1px solid #E81123; }
-    .done { text-decoration:line-through; opacity:.6; }
-    @media (max-width:600px) { body{font-size:115%;} .task-date{width:6em;} .header{flex-direction:column;align-items:center;} .header button{margin:.2em;} }
-    @media (max-width:900px) { body{font-size:110%;} .task-date{width:7em;} }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #E6F5FF;
+      color: #333;
+    }
+    .logo {
+      display: block;
+      margin: 1em auto;
+      max-height: 50px;
+    }
+    .header {
+      text-align: center;
+      padding: 1em;
+      background: #0078D4;
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 700px;
+      margin: 1em auto;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .task {
+      display: flex;
+      align-items: center;
+      padding: 1em;
+      border-bottom: 1px solid #CBD4E1;
+    }
+    .task:last-child { border-bottom: none; }
+    .date {
+      width: 6em;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      text-align: left;
+    }
+    .icon {
+      width: 1.5em;
+      margin: 0 0.75em;
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .content {
+      flex-grow: 1;
+      font-size: 1rem;
+    }
+    .checkbox {
+      margin-left: 1em;
+      flex-shrink: 0;
+    }
+    .due-soon { background: #FFF8E1; }
+    .overdue  { border-left: 4px solid #E81123; }
+    @media (max-width: 600px) {
+      body { font-size: 115%; }
+      .header { font-size: 1.1rem; }
+      .task { padding: 0.75em; }
+    }
   </style>
 </head>
 <body>
-  <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo Huttwil" class="school-logo-student">
-  <div class="page-title">Hausaufgabenübersicht</div>
-  <div class="header">
-    <button id="tab-today">Heute</button>
-    <button id="tab-all">Alle Aufgaben</button>
-    <button id="tab-done">Erledigt</button>
-  </div>
+  <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo" class="logo">
+  <div class="header">Hausaufgabenübersicht</div>
   <div class="container">
-    <div class="settings">
-      <button id="btn-font-lg">A+</button>
-      <button id="btn-font-sm">A-</button>
-      <button id="btn-contrast">Kontrast</button>
-    </div>
-    <ul class="task-list" id="task-list"></ul>
+    <ul class="task-list" id="task-list">
+      <!-- Dynamisch befüllte Aufgaben -->
+    </ul>
   </div>
-
   <script>
-    const webdavUrl = 'https://meine-schule.ch/remote.php/webdav/tafel/';
-    const authHeader = 'Basic ' + btoa('SCHUELER_NUTZER:PASSWORT');
+    // Dummy-Daten zum Test
+    const tasks = [
+      { date: '2025-05-31', icon: '📘', title: 'Mathematik: Gleichungen', done: false },
+      { date: '2025-06-01', icon: '✏️', title: 'Deutsch: Aufsatz lesen', done: true },
+      { date: '2025-05-30', icon: '🔬', title: 'Biologie: Experiment', done: false }
+    ];
     const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-
-    function formatDateDE(d) {
+    function formatDate(d) {
       const [y,m,day] = d.split('-');
-      return `${parseInt(day,10)}. ${MONATE[parseInt(m,10)-1]} ${y}`;
+      return parseInt(day)+"."+" "+MONATE[parseInt(m)-1]+" "+y;
     }
-
-    let currentTab = 'all';
-    document.getElementById('tab-today').onclick = () => { currentTab = 'today'; loadTasks(); };
-    document.getElementById('tab-all').onclick   = () => { currentTab = 'all';   loadTasks(); };
-    document.getElementById('tab-done').onclick  = () => { currentTab = 'done';  loadTasks(); };
-
-    document.getElementById('btn-font-lg').onclick  = () => document.body.style.fontSize = '115%';
-    document.getElementById('btn-font-sm').onclick  = () => document.body.style.fontSize = '90%';
-    document.getElementById('btn-contrast').onclick = () => document.body.classList.toggle('high-contrast');
-
-    async function loadTasks() {
-      const listEl = document.getElementById('task-list');
-      listEl.innerHTML = '';
-      let files = [];
-      try {
-        // PROPFIND über WebDAV (falls konfiguriert)
-        const res = await fetch(webdavUrl, {
-          method: 'PROPFIND',
-          headers: { 'Authorization': authHeader, 'Depth': '1' }
-        });
-        if (!res.ok) throw new Error('WebDAV nicht erreichbar');
-        const xmlText = await res.text();
-        const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
-        const responses = xml.querySelectorAll('response');
-        responses.forEach(r => {
-          let href = r.querySelector('href').textContent;
-          if (href.endsWith('/')) href = href.slice(0, -1);
-          const name = decodeURIComponent(href.split('/').pop());
-          if (name.endsWith('.json')) files.push(name);
-        });
-      } catch (e) {
-        console.warn('WebDAV-Ladefehler:', e);
-        // Fallback: keine Dateien
-        files = [];
-      }
-      
-      // Dummy-Daten, wenn keine Verbindung besteht
-      if (files.length === 0) {
-        listEl.innerHTML = '<li>Keine Verbindung zum Server. Test-Daten anzeigen.</li>';
-        return;
-      }
-
-      const tasks = [];
-      for (const file of files) {
-        try {
-          const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
-          const entry = await r2.json();
-          if (!entry.deleted) tasks.push({ ...entry, filename: file });
-        } catch (e) {
-          console.warn('Eintrag konnte nicht geladen werden:', file, e);
-        }
-      }
-
-      tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
-      tasks.forEach(t => renderTask(t, new Date(t.date), null));
-    }
-      });
-      const xmlText = await res.text();
-      const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
-      
-      // Alle RESPONSE-Knoten sammeln
-      const responses = xml.querySelectorAll('response');
-      const files = [];
-      responses.forEach(r => {
-        let href = r.querySelector('href').textContent;
-        if (href.endsWith('/')) href = href.slice(0, -1);
-        const name = decodeURIComponent(href.split('/').pop());
-        if (name.endsWith('.json')) files.push(name);
-      });
-
-      // Einträge holen
-      const tasks = [];
-      for (const file of files) {
-        const r2 = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
-        const entry = await r2.json();
-        if (!entry.deleted) tasks.push({ ...entry, filename: file });
-      }
-
-      // Sortierung: aufsteigend nach Datum
-      tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      // Rendern
-      tasks.forEach(t => renderTask(t, new Date(t.date), null));
-    }
-
-      const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1);
-      tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      tasks.forEach(t => renderTask(t, now, tomorrow));
-    }
-
-    function renderTask(task, now, tomorrow) {
-      const li = document.createElement('li'); li.className = 'task';
-      const dt = new Date(task.date);
-      if (task.done) li.classList.add('done');
-      else if (dt.toDateString() === now.toDateString() || dt.toDateString() === tomorrow.toDateString()) li.classList.add('due-soon');
-      else if (dt < now) li.classList.add('overdue');
-
-      const dateSpan = document.createElement('span');
-      dateSpan.className = 'task-date';
-      dateSpan.textContent = formatDateDE(task.date);
-      li.appendChild(dateSpan);
-
-      const icon = document.createElement('span'); icon.className = 'task-icon'; icon.textContent = '📘';
-      li.appendChild(icon);
-
-      const content = document.createElement('div'); content.className = 'task-content';
-      content.textContent = task.title + (task.comment ? ' – ' + task.comment : '');
-      li.appendChild(content);
-
-      const actions = document.createElement('div'); actions.className = 'task-actions';
-      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = task.done;
-      chk.onchange = () => toggleDone(task.filename, chk.checked);
-      actions.appendChild(chk);
-
-      const del = document.createElement('button'); del.innerHTML = '🗑️'; del.title = 'Löschen';
-      del.onclick = () => deleteTask(task.filename);
-      actions.appendChild(del);
-
-      li.appendChild(actions);
-      document.getElementById('task-list').appendChild(li);
-    }
-
-    async function toggleDone(file, done) {
-      const r = await fetch(webdavUrl + encodeURIComponent(file), { headers: { 'Authorization': authHeader } });
-      const entry = await r.json(); entry.done = done;
-      const blob = new Blob([JSON.stringify(entry, null, 2)], { type: 'application/json' });
-      await fetch(webdavUrl + encodeURIComponent(file), { method: 'PUT', headers: { 'Authorization': authHeader }, body: blob });
-      loadTasks();
-    }
-
-    async function deleteTask(file) {
-      if (!confirm('Eintrag wirklich löschen?')) return;
-      await fetch(webdavUrl + encodeURIComponent(file), { method: 'DELETE', headers: { 'Authorization': authHeader } });
-      loadTasks();
-    }
-
-    // Initial
-    loadTasks();
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate()+1);
+    const list = document.getElementById('task-list');
+    tasks.forEach(t => {
+      const li = document.createElement('li');
+      li.className = 'task';
+      const dt = new Date(t.date);
+      if (t.done) li.classList.add('overdue');
+      else if (dt.toDateString()===now.toDateString()||dt.toDateString()===tomorrow.toDateString()) li.classList.add('due-soon');
+      const date = document.createElement('div');
+      date.className='date';
+      date.textContent=formatDate(t.date);
+      const icon = document.createElement('div');
+      icon.className='icon';
+      icon.textContent=t.icon;
+      const content = document.createElement('div');
+      content.className='content';
+      content.textContent=t.title;
+      const chk = document.createElement('input');
+      chk.type='checkbox';
+      chk.checked=t.done;
+      chk.className='checkbox';
+      li.append(date, icon, content, chk);
+      list.appendChild(li);
+    });
   </script>
 </body>
 </html>
