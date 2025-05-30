@@ -40,14 +40,17 @@
       margin-bottom: 1em;
       align-items: center;
     }
+    .task-form select,
     .task-form input[type="date"],
-    .task-form input[type="text"] {
+    .task-form input[type="text"],
+    .task-form textarea {
       flex: 1 1 150px;
       padding: 0.5em;
       border: 1px solid #CBD4E1;
       border-radius: 4px;
       background: #F8FBFF;
     }
+    .task-form select { max-width: 200px; }
     .task-form button {
       background: #0078D4;
       color: #fff;
@@ -60,9 +63,10 @@
     .task-list { list-style: none; padding: 0; margin: 0; }
     .task {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       padding: 1em;
       border-bottom: 1px solid #CBD4E1;
+      gap: 0.5em;
     }
     .task:last-child { border-bottom: none; }
     .date {
@@ -71,20 +75,32 @@
       flex-shrink: 0;
       text-align: left;
     }
-    .icon {
-      width: 1.5em;
-      margin: 0 0.75em;
+    .subject {
+      width: 5em;
       flex-shrink: 0;
-      text-align: center;
+      font-size: 0.9rem;
     }
     .content { flex-grow: 1; font-size: 1rem; }
+    .attachments {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25em;
+      margin-top: 0.5em;
+    }
+    .attachment {
+      display: flex;
+      align-items: center;
+      gap: 0.25em;
+      font-size: 0.9rem;
+    }
+    .attachment span.icon { width: 1.2em; }
     .checkbox { margin-left: 1em; flex-shrink: 0; }
     .due-soon { background: #FFF8E1; }
     .overdue  { border-left: 4px solid #E81123; }
     @media (max-width: 600px) {
       body { font-size: 115%; }
       .header { font-size: 1.1rem; }
-      .task { padding: 0.75em; }
+      .task { padding: 0.75em; flex-direction: column; align-items: flex-start; }
       .task-form { flex-direction: column; align-items: stretch; }
     }
   </style>
@@ -95,8 +111,17 @@
   <div class="container">
     <!-- Formular für neue Aufgabe -->
     <form class="task-form" id="task-form">
+      <select id="task-subject" required>
+        <option value="">Fach wählen</option>
+        <option>BG</option><option>Deutsch</option><option>Englisch</option>
+        <option>ERG</option><option>Französisch</option><option>HW</option>
+        <option>Italienisch</option><option>IVE</option><option>Mathematik</option>
+        <option>MI</option><option>NT</option><option>RZG</option>
+        <option>TG/XG</option><option>WAH</option>
+      </select>
+      <input type="text" id="task-title" placeholder="Kurztitel" required>
       <input type="date" id="task-date" required>
-      <input type="text" id="task-text" placeholder="Aufgabe (z. B. Fach: Titel)" required>
+      <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
       <button type="submit">Hinzufügen</button>
     </form>
 
@@ -104,7 +129,6 @@
   </div>
 
   <script>
-    // ===== STORAGE-ADAPTER mit localStorage-Fallback =====
     const STORAGE_KEY = 'hausaufgaben_entries';
     async function loadEntriesFromStorage() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -122,34 +146,31 @@
       list = list.filter(e => e.filename !== filename);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
-    // =====================================================
 
-    const MONATE = [
-      "Januar","Februar","März","April","Mai","Juni",
-      "Juli","August","September","Oktober","November","Dezember"
-    ];
+    const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
     function formatDate(d) {
       const [y,m,day] = d.split('-');
       return parseInt(day,10) + '. ' + MONATE[parseInt(m,10)-1] + ' ' + y;
     }
 
-    // DOM-Elemente
     const listEl = document.getElementById('task-list');
     const form = document.getElementById('task-form');
+    const subjInput = document.getElementById('task-subject');
+    const titleInput = document.getElementById('task-title');
     const dateInput = document.getElementById('task-date');
-    const textInput = document.getElementById('task-text');
+    const descInput = document.getElementById('task-desc');
 
-    // Neue Aufgabe hinzufügen
     form.addEventListener('submit', async e => {
       e.preventDefault();
+      const subject = subjInput.value;
+      const title = titleInput.value.trim();
       const date = dateInput.value;
-      const text = textInput.value.trim();
-      if (!date || !text) return;
-      const entry = { date, time: null, text, done: false, attachments: [] };
-      const filename = date + '.json';
+      const description = descInput.value.trim();
+      if (!subject || !title || !date) return;
+      const entry = { date, subject, title, description, done: false, attachments: [] };
+      const filename = date + '_' + subject + '_' + title.replace(/\s+/g,'_') + '.json';
       await saveEntryToStorage(filename, entry);
-      dateInput.value = '';
-      textInput.value = '';
+      form.reset();
       loadTasks();
     });
 
@@ -167,70 +188,43 @@
     }
 
     function renderEntry(filename, entry) {
-      const li = document.createElement('li'); li.className='task';
+      // Text sicher setzen
+      const text = entry.text || `${entry.subject || ''}: ${entry.title || ''}${entry.description ? ' – ' + entry.description : ''}`.trim();
+      if (!text) return;
+      const li = document.createElement('li'); li.className = 'task';
       const dt = new Date(entry.date);
       if (entry.done) li.classList.add('overdue');
       else {
-        const now = new Date(), tomorrow = new Date(now);
-        tomorrow.setDate(now.getDate()+1);
-        if (dt.toDateString()===now.toDateString()||dt.toDateString()===tomorrow.toDateString()) {
-          li.classList.add('due-soon');
-        }
+        const now = new Date(), tom = new Date(now);
+        tom.setDate(now.getDate()+1);
+        if (dt.toDateString()===now.toDateString()||dt.toDateString()===tom.toDateString()) li.classList.add('due-soon');
       }
-      const dateEl = document.createElement('div'); dateEl.className='date'; dateEl.textContent=formatDate(entry.date);
-      const iconEl = document.createElement('div'); iconEl.className='icon'; iconEl.textContent='📘';
-      // Text zusammensetzen, falls entry.text fehlt
-      let text = entry.text;
-      if ((!text || text.trim() === '') && (entry.subject || entry.title)) {
-        text = `${entry.subject || ''}: ${entry.title || ''}${entry.description ? ' – ' + entry.description : ''}`;
-      }
-      const contentEl = document.createElement('div'); contentEl.className='content'; contentEl.textContent=text;
-      // Anhänge anzeigen, falls vorhanden
+      const dateEl = document.createElement('div'); dateEl.className = 'date'; dateEl.textContent = formatDate(entry.date);
+      const subjEl = document.createElement('div'); subjEl.className = 'subject'; subjEl.textContent = entry.subject;
+      const contentEl = document.createElement('div'); contentEl.className = 'content'; contentEl.textContent = text;
+      li.append(dateEl, subjEl, contentEl);
+      // Anhänge
       if (Array.isArray(entry.attachments) && entry.attachments.length) {
-        const attachDiv = document.createElement('div'); attachDiv.className='attachments';
+        const attachDiv = document.createElement('div'); attachDiv.className = 'attachments';
         entry.attachments.forEach(name => {
-          const a = document.createElement('div'); a.className='attachment';
+          const a = document.createElement('div'); a.className = 'attachment';
           const ext = name.split('.').pop().toLowerCase();
-          const icon = document.createElement('span'); icon.className='icon';
+          const icon = document.createElement('span'); icon.className = 'icon';
           icon.textContent = ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄';
           const span = document.createElement('span'); span.textContent = name; span.title = name;
           a.append(icon, span);
           attachDiv.append(a);
         });
-        li.append(dateEl, iconEl, contentEl, attachDiv);
-      } else {
-        li.append(dateEl, iconEl, contentEl);
+        li.append(attachDiv);
       }
       const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=entry.done; chk.className='checkbox';
-      chk.addEventListener('change', async () => {
-        entry.done = chk.checked;
-        await saveEntryToStorage(filename, entry);
-        loadTasks();
-      });
-      const delBtn = document.createElement('button'); delBtn.textContent='🗑️'; delBtn.className='checkbox';
-      delBtn.style.marginLeft = '0.5em';
+      chk.addEventListener('change', async () => { entry.done = chk.checked; await saveEntryToStorage(filename, entry); loadTasks(); });
+      const delBtn = document.createElement('button'); delBtn.textContent='🗑️'; delBtn.className='checkbox'; delBtn.style.marginLeft='0.5em';
       delBtn.addEventListener('click', () => deleteTask(filename));
       li.append(chk, delBtn);
       listEl.appendChild(li);
     }
-      }
-      const dateEl = document.createElement('div'); dateEl.className='date'; dateEl.textContent=formatDate(entry.date);
-      const iconEl = document.createElement('div'); iconEl.className='icon'; iconEl.textContent='📘';
-      const contentEl = document.createElement('div'); contentEl.className='content'; contentEl.textContent=entry.text;
-      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=entry.done; chk.className='checkbox';
-      chk.addEventListener('change', async () => {
-        entry.done = chk.checked;
-        await saveEntryToStorage(filename, entry);
-        loadTasks();
-      });
-      const delBtn = document.createElement('button'); delBtn.textContent='🗑️'; delBtn.className='checkbox';
-      delBtn.style.marginLeft = '0.5em';
-      delBtn.addEventListener('click', () => deleteTask(filename));
-      li.append(dateEl, iconEl, contentEl, chk, delBtn);
-      listEl.appendChild(li);
-    }
 
-    // Initial laden
     loadTasks();
   </script>
 </body>
