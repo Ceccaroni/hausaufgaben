@@ -3,116 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lehrer-Dashboard</title>
+  <title>Hausaufgaben – Schüler:innen-Übersicht</title>
   <style>
     body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#E6F5FF; color:#333; }
-    /* Auth-Overlay */
-    #auth-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(10px);
-      display:flex; align-items:center; justify-content:center; z-index:9999; }
-    .auth-modal { background:#fff; border-radius:16px; padding:24px; width:300px;
-      box-shadow:0 10px 30px rgba(0,0,0,0.15); text-align:center; }
-    .auth-modal h2 { margin:0 0 1em; font-size:1.25rem; }
-    .auth-modal input, .auth-modal button { width:100%; box-sizing:border-box; }
-    .auth-modal input { height:44px; padding:0 12px; margin-bottom:1em; border:1px solid #CCC;
-      border-radius:12px; font-size:1rem; }
-    .auth-modal button { height:44px; background:#007AFF; color:#fff; border:none;
-      border-radius:12px; font-size:1rem; cursor:pointer; }
-    .auth-modal p { margin-top:1em; color:#E81123; font-size:.875rem; display:none; }
-    /* Preview Overlay */
-    #preview-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
-      backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:10000; }
-    #preview-modal { background:#fff; border-radius:12px; max-width:80%; max-height:80%; padding:16px;
-      position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:auto; }
-    #preview-close { position:absolute; top:8px; right:8px; background:transparent; border:none;
-      font-size:1.5rem; cursor:pointer; color:#555; }
-    #preview-content img, #preview-content .file-icon { max-width:100%; max-height:70vh;
-      display:block; margin:0 auto; }
-    .download-btn { display:none; margin:12px auto 0; padding:.5em 1em;
-      background:#007AFF; color:#fff; text-decoration:none; border-radius:8px;
-      font-size:1rem; text-align:center; }
-    /* Container */
-    .container { max-width:720px; margin:2em auto; background:#fff; padding:2em;
-      border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-    .top-link { text-align:right; margin-bottom:1em; }
-    .top-link a { background:#0078D4; color:#fff; padding:.5em 1em;
-      border-radius:8px; text-decoration:none; font-size:1rem; }
-    .school-logo { display:block; margin:0 auto 1em; max-height:60px; }
-    h1 { text-align:center; font-size:1.5rem; margin-bottom:1em; }
-    /* Formular */
-    .task-form { display:flex; flex-wrap:wrap; gap:.5em; margin-bottom:2em; }
-    .task-form > select, .task-form > input[type='text'], .task-form > input[type='date'] {
-      flex:1 1 calc(33% - .5em); padding:.5em; border:1px solid #CBD4E1;
-      border-radius:6px; background:#F8FBFF; font-size:1rem; box-sizing:border-box; }
-    .task-form > textarea { flex:1 1 100%; height:80px; padding:.5em;
-      border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF;
-      font-size:1rem; box-sizing:border-box; }
-    .file-label { flex:1 1 calc(33% - .5em); display:flex; align-items:center;
-      padding:.5em; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF;
-      cursor:pointer; box-sizing:border-box; }
+    .logo { display:block; margin:1em auto; max-height:50px; }
+    .header { text-align:center; padding:1em; background:#0078D4; color:#fff; font-size:1.25rem; font-weight:600; }
+    .container { max-width:700px; margin:1em auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.1); padding:1em; }
+    /* Formular angeglichen an Admin */
+    .task-form { display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:1em; }
+    .task-form > select,
+    .task-form > input[type="text"],
+    .task-form > input[type="date"] { flex:1 1 calc(33% - .5em); padding:0.5em; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF; font-size:1rem; box-sizing:border-box; }
+    .task-form > textarea { flex:1 1 100%; padding:0.5em; height:80px; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF; font-size:1rem; box-sizing:border-box; }
+    .file-label { flex:1 1 calc(33% - .5em); display:flex; align-items:center; padding:0.5em; border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF; cursor:pointer; box-sizing:border-box; }
     .file-label .icon { font-size:1rem; color:#555; }
+    .file-label span { margin-left:0.5em; font-size:0.9rem; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .file-label input { display:none; }
-    .file-label span { margin-left:.5em; font-size:.9rem; color:#555; white-space:nowrap;
-      overflow:hidden; text-overflow:ellipsis; }
-    .task-form > button { flex:1 1 calc(33% - .5em); background:#0078D4; color:#fff;
-      border:none; padding:.75em; border-radius:6px; font-size:1rem; cursor:pointer;
-      box-sizing:border-box; }
+    .task-form > button { flex:1 1 calc(33% - .5em); background:#0078D4; color:#fff; border:none; padding:0.75em; border-radius:6px; font-size:1rem; cursor:pointer; box-sizing:border-box; }
     /* Liste */
     .task-list { list-style:none; padding:0; margin:0; }
-    .task { display:flex; flex-direction:column; border-bottom:1px solid #CBD4E1; box-sizing:border-box; }
+    .task { display:flex; flex-direction:column; border-bottom:1px solid #CBD4E1; box-sizing:border-box; padding-left:0.5em; }
     .task:nth-child(even) { background:#F9FBFD; }
     .task:last-child { border-bottom:none; }
-    .task-header { display:flex; align-items:flex-start; gap:.5em; padding:1em 0 .5em; }
-    .meta { width:11em; font-size:.9rem; flex-shrink:0; }
+    .task-header { display:flex; align-items:flex-start; gap:0.5em; padding:1em 0 0.5em; }
+    .meta { width:11em; font-size:0.9rem; flex-shrink:0; }
     .meta .date { display:block; }
     .meta .subject { display:block; font-weight:600; }
     .content { flex-grow:1; font-size:1rem; }
     .content .title { font-weight:bold; }
-    .content .description { margin-top:.25em; color:#555; }
-    .attachments { padding:0 0.5em 1em 11em; display:flex; flex-direction:column; gap:.25em; }
-    .attachment { display:flex; align-items:center; gap:.25em; font-size:.9rem; }
+    .content .description { margin-top:0.25em; color:#555; }
+    .attachments { padding:0 0.5em 1em 11em; display:flex; flex-direction:column; gap:0.25em; }
+    .attachment { display:flex; align-items:center; gap:0.25em; font-size:0.9rem; }
     .attachment span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%; }
     .attachment .icon { width:1.2em; }
     /* Buttons */
-    .edit-button, .trash-button { background:transparent; border:none; font-size:1.2rem; color:#888; padding:.2em; border-radius:50%; cursor:pointer; transition:background .2s, color .2s; }
+    .edit-button, .trash-button { background:transparent; border:none; font-size:1.2rem; color:#888; padding:0.2em; border-radius:50%; cursor:pointer; transition:background .2s, color .2s; }
     .edit-button:hover, .trash-button:hover { background:rgba(0,0,0,0.05); color:#333; }
     /* Status */
-    .task.done .task-header::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:#60B664; }
-    .task.done .task-header { background:#F8FFF8; position:relative; }
-    .task.done .attachments { opacity:.6; }
+    .done .task-header { border-left:4px solid #60B664; background:#F8FFF8; }
+    .done .attachments { opacity:0.6; }
     .due-soon { background:#FFF8E1; }
-    .overdue { }
-    @media(max-width:600px){ body{font-size:115%;} .header{font-size:1.1rem;} .task-header{flex-direction:column;align-items:flex-start;} .attachments{padding:.5em 0;} }
+    .overdue { border-left:4px solid #E81123; }
+    /* Preview Overlay */
+    #preview-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:10000; }
+    #preview-modal { background:#fff; border-radius:12px; max-width:80%; max-height:80%; padding:16px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:auto; }
+    #preview-close { position:absolute; top:8px; right:8px; background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#555; }
+    #preview-content img, #preview-content .file-icon { max-width:100%; max-height:70vh; display:block; margin:0 auto; }
+    .download-btn { display:none; margin:12px auto 0; padding:0.5em 1em; background:#007AFF; color:#fff; text-decoration:none; border-radius:8px; font-size:1rem; text-align:center; }
+    @media(max-width:600px){ body{font-size:115%;} .header{font-size:1.1rem;} .task-header{flex-direction:column;align-items:flex-start;} .attachments{padding:0.5em 0;} }
   </style>
 </head>
 <body>
-  <div id="auth-overlay">
-    <div class="auth-modal">
-      <h2>Admin Login</h2>
-      <input id="admin-password" type="password" placeholder="Passwort">
-      <button id="auth-submit">Einloggen</button>
-      <p id="auth-error">Falsches Passwort</p>
-    </div>
-  </div>
-
-  <div id="preview-overlay">
-    <div id="preview-modal">
-      <button id="preview-close">×</button>
-      <div id="preview-content"></div>
-      <a id="preview-download" class="download-btn" href>Download</a>
-    </div>
-  </div>
-
+  <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo" class="logo">
+  <div class="header">Hausaufgabenübersicht</div>
   <div class="container">
-    <div class="top-link"><a href="index.html" target="_blank">Schüler-Ansicht öffnen</a></div>
-    <img class="school-logo" src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo">
-    <h1>Lehrer-Dashboard</h1>
-    <form id="task-form" class="task-form">
+    <form class="task-form" id="task-form">
       <select id="task-subject" required>
         <option value="">Fach wählen</option>
         <option>BG</option><option>Deutsch</option><option>Englisch</option><option>ERG</option>
-        <option>Französisch</option><option>HW</option><option>Italienisch</option>
-        <option>IVE</option><option>Mathematik</option><option>MI</option>
-        <option>NT</option><option>RZG</option><option>TG/XG</option><option>WAH</option>
+        <option>Französisch</option><option>HW</option><option>Italienisch</option><option>IVE</option>
+        <option>Mathematik</option><option>MI</option><option>NT</option><option>RZG</option>
+        <option>TG/XG</option><option>WAH</option>
       </select>
       <input type="text" id="task-title" placeholder="Kurztitel" required>
       <input type="date" id="task-date" required>
@@ -123,165 +74,56 @@
       </label>
       <button type="submit">Hinzufügen</button>
     </form>
-    <ul id="task-list" class="task-list"></ul>
+    <ul class="task-list" id="task-list"></ul>
+  </div>
+
+  <div id="preview-overlay">
+    <div id="preview-modal">
+      <button id="preview-close">×</button>
+      <div id="preview-content"></div>
+      <a id="preview-download" class="download-btn" href>Download</a>
+    </div>
   </div>
 
   <script>
-    // Login-Überprüfung (30 Tage)
-    const ADMIN_PWD = "gmc666";
-    const LOGIN_KEY = 'admin_login_valid_until';
-    const overlay = document.getElementById('auth-overlay');
-    const pwdInput = document.getElementById('admin-password');
-    const authBtn = document.getElementById('auth-submit');
-    const errMsg = document.getElementById('auth-error');
-    function checkLogin() {
-      const validUntil = parseInt(localStorage.getItem(LOGIN_KEY) || '0', 10);
-      if(Date.now() < validUntil) {
-        overlay.style.display = 'none';
-        loadTasks();
-      } else {
-        overlay.style.display = 'flex';
-      }
-    }
-    function setLoginValid() {
-      const thirtyDays = 30*24*60*60*1000;
-      localStorage.setItem(LOGIN_KEY, (Date.now()+thirtyDays).toString());
-    }
-    authBtn.addEventListener('click', auth);
-    pwdInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); auth(); }});
-    function auth() {
-      if (pwdInput.value.trim() === ADMIN_PWD) {
-        setLoginValid();
-        overlay.style.display='none';
-        loadTasks();
-      } else {
-        errMsg.style.display='block';
-      }
-    }
-
-    // STORAGE-Adapter
-    const STORAGE_KEY = 'hausaufgaben_entries';
-    async function loadEntries(){ const raw=localStorage.getItem(STORAGE_KEY); return raw?JSON.parse(raw):[]; }
-    async function saveEntry(fn,e){ let l=await loadEntries(), i=l.findIndex(x=>x.filename===fn); if(i>=0) l[i].entry=e; else l.push({filename:fn,entry:e}); localStorage.setItem(STORAGE_KEY,JSON.stringify(l)); }
-    async function deleteEntry(fn){ let l=await loadEntries(); l=l.filter(x=>x.filename!==fn); localStorage.setItem(STORAGE_KEY,JSON.stringify(l)); }
-
-    // Datei-Mappings
-    const fileMap = {};
-    // DOM-Referenzen
-    const listEl=document.getElementById('task-list'), form=document.getElementById('task-form'), subjI=document.getElementById('task-subject'), titleI=document.getElementById('task-title'), dateI=document.getElementById('task-date'), descI=document.getElementById('task-desc'), attachI=document.getElementById('task-attachments'), fileNames=document.getElementById('file-names');
-    let editKey=null;
-    attachI.addEventListener('change', ()=>{
-      const files = Array.from(attachI.files);
-      fileNames.textContent = files.map(f=>f.name).join(', ');
-      fileNames.title = files.map(f=>f.name).join('\n');
-      files.forEach(f=>{
-        const reader = new FileReader();
-        reader.onload = e => fileMap[f.name] = e.target.result;
-        reader.readAsDataURL(f);
-      });
-    });
-
+    const STORAGE_KEY='hausaufgaben_entries';
+    async function loadEntries(){const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}
+    async function saveEntry(fn,e){let l=await loadEntries(),i=l.findIndex(x=>x.filename===fn);if(i>=0)l[i].entry=e;else l.push({filename:fn,entry:e});localStorage.setItem(STORAGE_KEY,JSON.stringify(l));}
+    async function deleteEntry(fn){let l=await loadEntries();l=l.filter(x=>x.filename!==fn);localStorage.setItem(STORAGE_KEY,JSON.stringify(l));}
     const MONATE=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-    function formatDate(d){ const [y,m,day]=d.split('-'); return parseInt(day)+'. '+MONATE[parseInt(m)-1]+' '+y; }
+    function formatDate(d){const [y,m,day]=d.split('-');return parseInt(day)+'. '+MONATE[parseInt(m)-1]+' '+y;}
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const subject = subjI.value;
-      const title = titleI.value.trim();
-      const date  = dateI.value;
-      const description = descI.value.trim();
-      const attachments = Array.from(attachI.files).map(f=>f.name);
-      if (!subject || !title || !date) return;
-      const entry = { date, subject, title, description, done:false, attachments, origin:'student' };
-      let fn;
-      if (editKey) {
-        fn = editKey;
-        await saveEntry(fn, entry);
-        editKey = null;
-      } else {
-        fn = `${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;
-        await saveEntry(fn, entry);
-      }
-      form.reset();
-      fileNames.textContent = 'Datei/Foto auswählen';
-      loadTasks();
-    });
+    const listEl=document.getElementById('task-list'),form=document.getElementById('task-form'),subjI=document.getElementById('task-subject'),titleI=document.getElementById('task-title'),dateI=document.getElementById('task-date'),descI=document.getElementById('task-desc'),attachI=document.getElementById('task-attachments'),fileNames=document.getElementById('file-names');
+    let editKey=null;
+    attachI.addEventListener('change',()=>{const files=Array.from(attachI.files);fileNames.textContent=files.map(f=>f.name).join(', ');fileNames.title=files.map(f=>f.name).join('\n');});
+    form.addEventListener('submit',async e=>{e.preventDefault();const subject=subjI.value,title=titleI.value.trim(),date=dateI.value,description=descI.value.trim(),attachments=Array.from(attachI.files).map(f=>f.name);if(!subject||!title||!date)return;const entry={date,subject,title,description,done:false,attachments,origin:'student'};const fn=editKey||`${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;await saveEntry(fn,entry);editKey=null;form.reset();fileNames.textContent='Datei/Foto auswählen';loadTasks();});
 
-    async function loadTasks(){
-      listEl.innerHTML = '';
-      const items = await loadEntries();
-      items.sort((a,b)=> new Date(a.entry.date) - new Date(b.entry.date));
-      items.forEach(it => renderEntry(it.filename, it.entry));
-    }
-    function deleteTask(fn){ if (confirm('Eintrag wirklich löschen?')) deleteEntry(fn).then(loadTasks); }
+    async function loadTasks(){listEl.innerHTML='';const items=await loadEntries();items.sort((a,b)=>new Date(a.entry.date)-new Date(b.entry.date));items.forEach(it=>renderEntry(it.filename,it.entry));}
+    function deleteTask(fn){if(confirm('Eintrag wirklich löschen?'))deleteEntry(fn).then(loadTasks);}   
 
-    const prevO = document.getElementById('preview-overlay');
-    const prevC = document.getElementById('preview-content');
-    const prevDl= document.getElementById('preview-download');
-    document.getElementById('preview-close').addEventListener('click', ()=>prevO.style.display='none');
-    function openPreview(name){
-      prevC.innerHTML=''; prevDl.style.display='none';
-      const data = fileMap[name];
-      if (data && data.startsWith('data:image')) {
-        const img=new Image(); img.src=data; prevC.append(img);
-        prevDl.href=data; prevDl.download=name; prevDl.style.display='block';
-      } else if (data) {
-        const icon=document.createElement('div'); icon.className='file-icon'; icon.textContent='📄'; prevC.append(icon);
-        prevDl.href=data; prevDl.download=name; prevDl.style.display='block';
-      }
+    const prevO=document.getElementById('preview-overlay'),prevC=document.getElementById('preview-content'),prevDl=document.getElementById('preview-download');
+    document.getElementById('preview-close').addEventListener('click',()=>prevO.style.display='none');
+    function openPreview(url,name){prevC.innerHTML='';prevDl.style.display='none';
+      if(['jpg','jpeg','png','gif'].includes(name.split('.').pop().toLowerCase())){const reader=new FileReader();reader.onload=e=>{const img=new Image();img.src=e.target.result;prevC.append(img);prevDl.href=e.target.result;prevDl.download=name;prevDl.style.display='block';};reader.readAsDataURL(attachI.files.find(f=>f.name===name));}else{const icon=document.createElement('div');icon.className='file-icon';icon.textContent='📄';prevC.append(icon);prevDl.href=URL.createObjectURL(new Blob());prevDl.download=name;prevDl.style.display='block';}
       prevO.style.display='flex';
     }
 
-    function renderEntry(fn, entry){
-      const li = document.createElement('li'); li.className='task';
-      // Status-Klassen
-      const dt = new Date(entry.date);
-      if(entry.done) li.classList.add('done');
-      else {
-        const now=new Date(), tom=new Date(now); tom.setDate(now.getDate()+1);
-        if(dt.toDateString()===now.toDateString() || dt.toDateString()===tom.toDateString()) li.classList.add('due-soon');
-        if(dt < now) li.classList.add('overdue');
-      }
-      // Header-Zeile
-      const header = document.createElement('div'); header.className='task-header';
-      const meta = document.createElement('div'); meta.className='meta';
-      const dSpan=document.createElement('span'); dSpan.className='date'; dSpan.textContent=formatDate(entry.date);
-      const sSpan=document.createElement('span'); sSpan.className='subject'; sSpan.textContent=entry.subject;
-      meta.append(dSpan, sSpan);
-      const content = document.createElement('div'); content.className='content';
-      const titleEl = document.createElement('div'); titleEl.className='title'; titleEl.textContent=entry.title;
-      content.append(titleEl);
-      if(entry.description){ const descEl=document.createElement('div'); descEl.className='description'; descEl.textContent=entry.description; content.append(descEl); }
-      header.append(meta, content);
-      // Edit-Button
-      if(entry.origin==='student'){ const edit=document.createElement('button'); edit.className='edit-button'; edit.textContent='✏️'; edit.addEventListener('click', ()=>{ editKey=fn; subjI.value=entry.subject; titleI.value=entry.title; dateI.value=entry.date; descI.value=entry.description||''; }); header.append(edit); }
-      // Checkbox
-      const chk=document.createElement('input'); chk.type='checkbox'; chk.checked=entry.done; chk.className='checkbox'; chk.addEventListener('change', async ()=>{ entry.done=chk.checked; await saveEntry(fn, entry); loadTasks(); }); header.append(chk);
-      // Trash-Button immer anzeigen bei eigenen Einträgen
-      if(entry.origin==='student'){ const del=document.createElement('button'); del.className='trash-button'; del.textContent='🗑️'; del.addEventListener('click', ()=>deleteTask(fn)); header.append(del); }
+    function renderEntry(fn,entry){
+      const li=document.createElement('li');li.className='task';
+      const dt=new Date(entry.date);
+      if(entry.done) li.classList.add('done'); else {const now=new Date(),tom=new Date(now);tom.setDate(now.getDate()+1);if(dt.toDateString()===now.toDateString()||dt.toDateString()===tom.toDateString()) li.classList.add('due-soon'); if(dt<now) li.classList.add('overdue');}
+      const header=document.createElement('div');header.className='task-header';
+      const meta=document.createElement('div');meta.className='meta';const dSpan=document.createElement('span');dSpan.className='date';dSpan.textContent=formatDate(entry.date);const sSpan=document.createElement('span');sSpan.className='subject';sSpan.textContent=entry.subject;meta.append(dSpan,sSpan);
+      const content=document.createElement('div');content.className='content';const titleEl=document.createElement('div');titleEl.className='title';titleEl.textContent=entry.title;content.append(titleEl);if(entry.description){const descEl=document.createElement('div');descEl.className='description';descEl.textContent=entry.description;content.append(descEl);}      
+      header.append(meta,content);
+      if(entry.origin==='student'){const edit=document.createElement('button');edit.className='edit-button';edit.textContent='✏️';edit.addEventListener('click',()=>{editKey=fn; subjI.value=entry.subject; titleI.value=entry.title; dateI.value=entry.date; descI.value=entry.description||'';});header.append(edit);}      
+      const chk=document.createElement('input');chk.type='checkbox';chk.checked=entry.done;chk.className='checkbox';chk.addEventListener('change',async()=>{entry.done=chk.checked;await saveEntry(fn,entry);loadTasks();});header.append(chk);
+      const del=document.createElement('button');del.className='trash-button';del.textContent='🗑️';del.addEventListener('click',()=>deleteTask(fn));header.append(del);
       li.append(header);
-      // Anhänge unterhalb
-      if(entry.attachments && entry.attachments.length){
-        const ad=document.createElement('div'); ad.className='attachments';
-        entry.attachments.forEach(name=>{
-          const a=document.createElement('div'); a.className='attachment';
-          const ext=name.split('.').pop().toLowerCase();
-          const ic=document.createElement('span'); ic.className='icon'; ic.textContent=['jpg','jpeg','png','gif'].includes(ext)?'🖼️':'📄';
-          const sp=document.createElement('span'); sp.textContent=name; sp.title=name;
-          a.append(ic, sp);
-          a.addEventListener('click', ()=>openPreview(name));
-          ad.append(a);
-        });
-        li.append(ad);
-      }
+      if(entry.attachments&&entry.attachments.length){const ad=document.createElement('div');ad.className='attachments';entry.attachments.forEach(name=>{const a=document.createElement('div');a.className='attachment';const ext=name.split('.').pop().toLowerCase();const ic=document.createElement('span');ic.className='icon';ic.textContent=['jpg','jpeg','png','gif'].includes(ext)?'🖼️':'📄';const sp=document.createElement('span');sp.textContent=name;sp.title=name;a.append(ic,sp);a.addEventListener('click',()=>openPreview(name,name));ad.append(a);});li.append(ad);}      
       listEl.appendChild(li);
     }
-    // Initialisierung
-    document.addEventListener('DOMContentLoaded', ()=>{
-      // Vorschau-Overlay verbergen
-      document.getElementById('preview-overlay').style.display='none';
-      checkLogin();
-    });
+    loadTasks();
   </script>
 </body>
 </html>
