@@ -2,213 +2,448 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lehrer-Dashboard</title>
   <style>
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#E6F5FF; color:#333; }
-    /* Auth Overlay */
-    #auth-overlay {
-      position: fixed; inset:0;
-      background: rgba(255,255,255,0.6);
-      backdrop-filter: blur(12px);
-      display:flex; align-items:center; justify-content:center; z-index:1000;
-    }
-    .auth-modal {
-      background: #fff; border-radius:16px; padding:24px; width:min(90%,320px);
-      box-shadow:0 20px 40px rgba(0,0,0,0.15); text-align:center;
-    }
-    .auth-modal h2 { margin:0 0 16px; font-size:1.25rem; font-weight:600; }
-    .auth-modal input {
-      width:100%; height:44px; padding:0 12px; margin-bottom:16px;
-      border:1px solid #CCC; border-radius:12px; font-size:1rem; box-sizing:border-box;
-    }
-    .auth-modal button {
-      width:100%; height:44px; background:#007AFF; color:#fff;
-      border:none; border-radius:12px; font-size:1rem; font-weight:600; cursor:pointer;
-    }
-    .auth-modal button:active { background:#005BBB; }
-    .auth-modal p { margin:12px 0 0; font-size:.875rem; color:#E81123; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#E6F5FF; color:#333; }
+    /* Auth-Overlay */
+    #auth-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(10px);
+      display:flex; align-items:center; justify-content:center; z-index:9999; }
+    .auth-modal { background:#fff; border-radius:16px; padding:24px; width:300px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.15); text-align:center; }
+    .auth-modal h2 { margin:0 0 1em; font-size:1.25rem; }
+    .auth-modal input, .auth-modal button { width:100%; box-sizing:border-box; }
+    .auth-modal input { height:44px; padding:0 12px; margin-bottom:1em; border:1px solid #CCC;
+      border-radius:12px; font-size:1rem; }
+    .auth-modal button { height:44px; background:#007AFF; color:#fff; border:none;
+      border-radius:12px; font-size:1rem; cursor:pointer; }
+    .auth-modal p { margin-top:1em; color:#E81123; font-size:.875rem; display:none; }
+    /* Preview Overlay */
+    #preview-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+      backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:10000; }
+    #preview-modal { background:#fff; border-radius:12px; max-width:80%; max-height:80%; padding:16px;
+      position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:auto; }
+    #preview-close { position:absolute; top:8px; right:8px; background:transparent; border:none;
+      font-size:1.5rem; cursor:pointer; color:#555; }
+    #preview-content img, #preview-content .file-icon { max-width:100%; max-height:70vh;
+      display:block; margin:0 auto; }
+    .download-btn { display:none; margin:12px auto 0; padding:.5em 1em;
+      background:#007AFF; color:#fff; text-decoration:none; border-radius:8px;
+      font-size:1rem; text-align:center; }
     /* Container */
-    .container {
-      max-width:700px; margin:2em auto; background:#fff; padding:2em;
-      border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
-    }
+    .container { max-width:720px; margin:2em auto; background:#fff; padding:2em;
+      border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
     .top-link { text-align:right; margin-bottom:1em; }
-    .top-link a {
-      background:#0078D4; color:#fff; padding:0.5em 1em; border-radius:4px;
-      text-decoration:none; font-size:1rem;
-    }
+    .top-link a { background:#0078D4; color:#fff; padding:.5em 1em;
+      border-radius:8px; text-decoration:none; font-size:1rem; }
     .school-logo { display:block; margin:0 auto 1em; max-height:60px; }
-    h1, h2 { margin-top:0; }
-    /* Form */
-    .entry-form label { display:block; margin-bottom:.5em; font-weight:600; }
-    .entry-form input[type="date"], .entry-form input[type="time"],
-    .entry-form textarea, .entry-form input[type="file"] {
-      width:100%; padding:.5em; border:1px solid #CBD4E1; border-radius:4px;
-      margin-bottom:1em; background:#F8FBFF; box-sizing:border-box;
-    }
-    .entry-form input[type="checkbox"] { margin-right:.5em; }
-    .entry-form button {
-      background:#0078D4; color:#fff; border:none; padding:.75em 1.5em;
-      border-radius:4px; font-size:1em; cursor:pointer;
-    }
-    .entry-form button:hover { background:#005A9E; }
-    #time-container { display:none; }
-    /* List */
-    .entries { margin-top:2em; }
-    .entries ul { list-style:none; padding:0; }
-    .entries li { border-bottom:1px solid #CBD4E1; padding:1em 0; }
-    .entry-meta { font-size:.9rem; color:#555; margin-bottom:.5em; }
-    .entry-text { margin-bottom:.5em; }
-    .entry-attachments a { margin-right:.5em; text-decoration:none; font-size:.9rem; color:#0078D4; }
-    .entry-actions button {
-      margin-right:.5em; padding:.3em .6em; border:none; border-radius:4px; cursor:pointer; color:#fff;
-    }
-    .btn-edit   { background:#FFC107; }
-    .btn-delete { background:#E81123; }
-    .btn-archiv { background:#107C10; }
+    h1 { text-align:center; font-size:1.5rem; margin-bottom:1em; }
+    /* Formular */
+    .task-form { display:flex; flex-wrap:wrap; gap:.5em; margin-bottom:2em; }
+    .task-form > select, .task-form > input[type='text'], .task-form > input[type='date'] {
+      flex:1 1 calc(33% - .5em); padding:.5em; border:1px solid #CBD4E1;
+      border-radius:6px; background:#F8FBFF; font-size:1rem; box-sizing:border-box; }
+    .task-form > textarea { flex:1 1 100%; height:80px; padding:.5em;
+      border:1px solid #CBD4E1; border-radius:6px; background:#F8FBFF;
+      font-size:1rem; box-sizing:border-box; }
+    .file-label { flex:1 1 calc(70% - .5em); display:flex; align-items:center;
+      justify-content:center; height:44px; background:#F8FBFF; border:1px solid #CBD4E1;
+      border-radius:6px; cursor:pointer; box-sizing:border-box; }
+    .file-label .icon { font-size:1.2rem; color:#555; }
+    .file-label input { display:none; }
+    .file-label span { margin-left:.5em; font-size:.9rem; color:#555; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis; width:80%; display:inline-block; vertical-align:middle; }
+    .task-form > button { flex:1 1 calc(30% - .5em); background:#007AFF; color:#fff;
+      border:none; padding:.75em; border-radius:8px; font-size:1rem; cursor:pointer;
+      box-sizing:border-box; }
+    /* Liste */
+    .task-list { list-style:none; padding:0; margin:0; }
+    .task { display:flex; flex-direction:column; border-bottom:1px solid #CBD4E1; box-sizing:border-box; }
+    .task:nth-child(even) { background:#F9FBFD; }
+    .task:last-child { border-bottom:none; }
+    .task-header { display:flex; align-items:flex-start; gap:.5em; padding:1em 0 .5em; position:relative; }
+    .meta { width:11em; font-size:.9rem; flex-shrink:0; }
+    .meta .date { display:block; }
+    .meta .subject { display:block; font-weight:600; }
+    .content { flex-grow:1; font-size:1rem; }
+    .content .title { font-weight:bold; }
+    .content .description { margin-top:.25em; color:#555; }
+    .attachments { padding:0 0.5em 1em 11em; display:flex; flex-direction:column; gap:.25em; }
+    .attachment { display:flex; align-items:center; gap:.25em; font-size:.9rem; cursor:pointer; }
+    .attachment .icon { font-size:1rem; }
+    .attachment span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%; }
+    .controls { display:flex; align-items:center; gap:.5em; margin-left: auto; }
+    .edit-button, .trash-button { background:transparent; border:none; font-size:1.2rem; color:#888; cursor:pointer; padding:.2em; border-radius:50%; transition:background .2s, color .2s; }
+    .edit-button:hover, .trash-button:hover { background:rgba(0,0,0,0.05); color:#333; }
+    .checkbox { margin-left:0.5em; flex-shrink:0; }
+    .task.done .task-header::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:#60B664; }
+    .task.done .task-header { background:#F8FFF8; position:relative; padding-left:0.75em; box-sizing:border-box; }
+    .task.done .attachments { opacity:.6; }
+    .due-soon { background:#FFF8E1; }
+    @media(max-width:600px) { body { font-size:115%; } .header { font-size:1.1rem; } .task-header { flex-direction:column; align-items:flex-start; } .attachments { padding:.5em 0; } }
   </style>
 </head>
 <body>
-  <!-- Auth Overlay -->
   <div id="auth-overlay">
     <div class="auth-modal">
       <h2>Admin Login</h2>
-      <input type="password" id="admin-password" placeholder="Passwort">
+      <input id="admin-password" type="password" placeholder="Passwort">
       <button id="auth-submit">Einloggen</button>
-      <p id="auth-error" style="display:none;">Falsches Passwort</p>
+      <p id="auth-error">Falsches Passwort</p>
+    </div>
+  </div>
+
+  <div id="preview-overlay">
+    <div id="preview-modal">
+      <button id="preview-close">×</button>
+      <div id="preview-content"></div>
+      <a id="preview-download" class="download-btn" href>Download</a>
     </div>
   </div>
 
   <div class="container">
-    <div class="top-link">
-      <a href="index.html" target="_blank" rel="noopener">Schüler-Ansicht öffnen</a>
-    </div>
-    <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo Huttwil" class="school-logo">
-    <h1>Neuer Eintrag</h1>
-    <form class="entry-form" onsubmit="return false;">
-      <label for="entry-date">Datum</label>
-      <input type="date" id="entry-date" required>
-      <div>
-        <input type="checkbox" id="add-timestamp">
-        <label for="add-timestamp" style="display:inline;font-weight:normal;">Zeitstempel hinzufügen</label>
-      </div>
-      <div id="time-container">
-        <label for="entry-time">Zeit</label>
-        <input type="time" id="entry-time">
-      </div>
-      <label for="entry-text">Eintrag</label>
-      <textarea id="entry-text" rows="4" required></textarea>
-      <label for="entry-files">Dateien (optional)</label>
-      <input type="file" id="entry-files" multiple>
-      <button id="submit-entry">Anzeigen &amp; hochladen</button>
+    <div class="top-link"><a href="index.html" target="_blank">Schüler-Ansicht öffnen</a></div>
+    <img class="school-logo" src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo">
+    <h1>Lehrer-Dashboard</h1>
+    <form id="task-form" class="task-form">
+      <select id="task-subject" required>
+        <option value="">Fach wählen</option>
+        <option>BG</option><option>Deutsch</option><option>Englisch</option><option>ERG</option>
+        <option>Französisch</option><option>HW</option><option>Italienisch</option>
+        <option>IVE</option><option>Mathematik</option><option>MI</option>
+        <option>NT</option><option>RZG</option><option>TG/XG</option><option>WAH</option>
+      </select>
+      <input type="text" id="task-title" placeholder="Kurztitel" required>
+      <input type="date" id="task-date" required>
+      <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
+      <label class="file-label">
+        <span class="icon">📎</span><span id="file-names" title="">Datei/Foto auswählen</span>
+        <input id="task-attachments" type="file" multiple>
+      </label>
+      <button type="submit">Hinzufügen</button>
     </form>
-
-    <div class="entries">
-      <h2>Aktuelle Aufgaben und Termine</h2>
-      <ul id="entries-list"></ul>
-    </div>
+    <ul id="task-list" class="task-list"></ul>
   </div>
 
   <script>
-    // Admin-Passwort
+    // Admin Login
     const ADMIN_PWD = "gmc666";
+    const LOGIN_KEY = 'admin_login_valid_until';
     const overlay = document.getElementById('auth-overlay');
-    const input = document.getElementById('admin-password');
-    const btn = document.getElementById('auth-submit');
-    const err = document.getElementById('auth-error');
+    const pwdInput = document.getElementById('admin-password');
+    const authBtn = document.getElementById('auth-submit');
+    const errMsg = document.getElementById('auth-error');
 
-    btn.addEventListener('click', () => auth());
-    input.addEventListener('keyup', (e) => { if (e.key === 'Enter') auth(); });
-    function auth() {
-      if (input.value === ADMIN_PWD) {
+    function checkLogin() {
+      const validUntil = parseInt(localStorage.getItem(LOGIN_KEY) || '0', 10);
+      if (Date.now() < validUntil) {
         overlay.style.display = 'none';
-        loadEntries();
+        loadTasks();
       } else {
-        err.style.display = 'block';
+        overlay.style.display = 'flex';
       }
     }
 
-    // WebDAV-Konfig
-    const webdavUrl = 'https://meine-schule.ch/remote.php/webdav/tafel/';
-    const archiveUrl = webdavUrl + 'archiv/';
-    const authHeader = 'Basic ' + btoa('LEHRER_USER:PASSWORT');
-    const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-
-    function formatDateDE(d) {
-      const [y,m,day] = d.split('-');
-      return `${parseInt(day,10)}. ${MONATE[parseInt(m,10)-1]} ${y}`;
+    function setLoginValid() {
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      localStorage.setItem(LOGIN_KEY, (Date.now() + thirtyDays).toString());
     }
 
-    // Toggle Zeit
-    document.getElementById('add-timestamp').addEventListener('change', function(){
-      const tc = document.getElementById('time-container');
-      if(this.checked) {
-        tc.style.display='block';
-        const now = new Date();
-        document.getElementById('entry-time').value = now.toTimeString().slice(0,5);
-      } else tc.style.display='none';
+    authBtn.addEventListener('click', auth);
+    pwdInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        auth();
+      }
     });
 
-    document.getElementById('submit-entry').addEventListener('click', async ()=>{
-      const sel = new Date(document.getElementById('entry-date').value);
-      const today = new Date(); today.setHours(0,0,0,0);
-      if (sel < today) { alert('Datum liegt in der Vergangenheit.'); return; }
-      await saveEntry(); await loadEntries();
-    });
-
-    async function saveEntry() {
-      const date = document.getElementById('entry-date').value;
-      let name = date + (document.getElementById('add-timestamp').checked? '_' + document.getElementById('entry-time').value.replace(':',''): '');
-      const filename = name + '.json';
-      const entry = { date, time: document.getElementById('add-timestamp').checked? document.getElementById('entry-time').value: null, text: document.getElementById('entry-text').value, attachments: [] };
-      for (let f of document.getElementById('entry-files').files) {
-        const att = name + '_' + f.name;
-        entry.attachments.push(att);
-        await fetch(webdavUrl + encodeURIComponent(att), { method:'PUT', headers:{ 'Authorization':authHeader }, body:f });
-      }
-      await fetch(webdavUrl + encodeURIComponent(filename), { method:'PUT', headers:{ 'Authorization':authHeader }, body: new Blob([JSON.stringify(entry,null,2)],{type:'application/json'}) });
-    }
-
-    async function loadEntries() {
-      const list = document.getElementById('entries-list');
-      list.innerHTML=''; 
-      try {
-        const res = await fetch(webdavUrl,{method:'PROPFIND',headers:{ 'Authorization':authHeader,'Depth':'1' }});
-        if(!res.ok) throw '';
-        const xml = new DOMParser().parseFromString(await res.text(),'application/xml');
-        const responses = Array.from(xml.querySelectorAll('response'));
-        const files = responses.map(r=>decodeURIComponent(r.querySelector('href').textContent.replace(/\/$/,'').split('/').pop())).filter(f=>f.endsWith('.json'));
-        for(let file of files) {
-          const entry = await (await fetch(webdavUrl + encodeURIComponent(file),{headers:{'Authorization':authHeader}})).json();
-          renderEntry(file, entry);
-        }
-      } catch {
-        // no connection
+    function auth() {
+      if (pwdInput.value.trim() === ADMIN_PWD) {
+        setLoginValid();
+        overlay.style.display = 'none';
+        loadTasks();
+      } else {
+        errMsg.style.display = 'block';
       }
     }
 
-    function renderEntry(fn, e) {
-      const li = document.createElement('li');
-      const meta = document.createElement('div'); meta.className='entry-meta'; meta.textContent = formatDateDE(e.date)+(e.time?' '+e.time:''); li.appendChild(meta);
-      const txt = document.createElement('div'); txt.className='entry-text'; txt.textContent=e.text; li.appendChild(txt);
-      if(e.attachments.length){
-        const ad = document.createElement('div'); ad.className='entry-attachments';
-        e.attachments.forEach(a=>{ let l=document.createElement('a'); l.href=webdavUrl+encodeURIComponent(a); l.target='_blank'; l.textContent=a.split('_').pop(); ad.appendChild(l); });
-        li.appendChild(ad);
+    // STORAGE-Adapter
+    const STORAGE_KEY = 'hausaufgaben_entries';
+    async function loadEntriesFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    async function saveEntryToStorage(fn, entry) {
+      // fileData speichern
+      if (entry.attachments && entry.attachments.length) {
+        entry.fileData = entry.fileData || {};
+        entry.attachments.forEach(name => {
+          if (fileMap[name]) {
+            entry.fileData[name] = fileMap[name];
+          }
+        });
       }
-      const act = document.createElement('div'); act.className='entry-actions';
-      ['edit','delete','archiv'].forEach(type=>{
-        let b=document.createElement('button');
-        if(type==='edit'){ b.className='btn-edit'; b.textContent='✏️'; }
-        if(type==='delete'){ b.className='btn-delete'; b.textContent='🗑️'; }
-        if(type==='archiv'){ b.className='btn-archiv'; b.textContent='📦'; }
-        act.appendChild(b);
+      let lst = await loadEntriesFromStorage();
+      const i = lst.findIndex(x => x.filename === fn);
+      if (i >= 0) {
+        lst[i].entry = entry;
+      } else {
+        lst.push({ filename: fn, entry });
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lst));
+    }
+
+    async function deleteEntryFromStorage(fn) {
+      let lst = await loadEntriesFromStorage();
+      lst = lst.filter(x => x.filename !== fn);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lst));
+    }
+
+    // Datei-Mapping
+    const fileMap = {};
+
+    // DOM-Referenzen
+    const listEl = document.getElementById('task-list'),
+          form = document.getElementById('task-form'),
+          subjI = document.getElementById('task-subject'),
+          titleI = document.getElementById('task-title'),
+          dateI = document.getElementById('task-date'),
+          descI = document.getElementById('task-desc'),
+          attachI = document.getElementById('task-attachments'),
+          fileNames = document.getElementById('file-names');
+    let editKey = null;
+
+    attachI.addEventListener('change', () => {
+      const files = Array.from(attachI.files);
+      fileNames.textContent = files.map(f => f.name).join(', ');
+      fileNames.title = files.map(f => f.name).join('\n');
+      files.forEach(f => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          fileMap[f.name] = e.target.result;
+        };
+        reader.readAsDataURL(f);
       });
-      li.appendChild(act); document.getElementById('entries-list').appendChild(li);
+    });
+
+    const MONATE = [
+      "Januar","Februar","März","April","Mai","Juni",
+      "Juli","August","September","Oktober","November","Dezember"
+    ];
+    function formatDate(d) {
+      const [y,m,day] = d.split('-');
+      return parseInt(day,10) + '. ' + MONATE[parseInt(m,10)-1] + ' ' + y;
     }
 
-    // Initial laden bleibt hinter Overlay
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const subject     = subjI.value;
+      const title       = titleI.value.trim();
+      const date        = dateI.value;
+      const description = descI.value.trim();
+      const attachments = Array.from(attachI.files).map(f => f.name);
+
+      if (!subject || !title || !date) return;
+
+      const entry = {
+        date,
+        subject,
+        title,
+        description,
+        done: false,
+        attachments,
+        origin: 'student'
+      };
+
+      let fn;
+      if (editKey) {
+        fn = editKey;
+        await saveEntryToStorage(fn, entry);
+        editKey = null;
+      } else {
+        fn = `${date}_${subject}_${title.replace(/\s+/g,'_')}.json`;
+        await saveEntryToStorage(fn, entry);
+      }
+
+      form.reset();
+      fileNames.textContent = 'Datei/Foto auswählen';
+      loadTasks();
+    });
+
+    async function loadTasks() {
+      listEl.innerHTML = '';
+      const items = await loadEntriesFromStorage();
+      items.sort((a,b) => new Date(a.entry.date) - new Date(b.entry.date));
+
+      items.forEach(item => {
+        console.log('Lade Eintrag:', item.filename);
+        if (item.entry.fileData) {
+          console.log(' → entry.fileData vorhanden:', item.entry.fileData);
+          Object.entries(item.entry.fileData).forEach(([name, data]) => {
+            fileMap[name] = data;
+            console.log(`   → fileMap[${name}] gesetzt (Länge: ${data.length})`);
+          });
+        } else {
+          console.log(' → kein entry.fileData für', item.filename);
+        }
+        renderEntry(item.filename, item.entry);
+      });
+    }
+
+    async function deleteTask(fn) {
+      if (!confirm('Eintrag wirklich löschen?')) return;
+      await deleteEntryFromStorage(fn);
+      loadTasks();
+    }
+
+    const prevO = document.getElementById('preview-overlay'),
+          prevC = document.getElementById('preview-content'),
+          prevDl = document.getElementById('preview-download');
+    document.getElementById('preview-close').addEventListener('click', () => {
+      prevO.style.display = 'none';
+    });
+
+    function openPreview(name) {
+      if (!fileMap[name]) {
+        console.warn('Vorschau: keine Daten in fileMap für', name);
+        return;
+      }
+      prevC.innerHTML = '';
+      prevDl.style.display = 'none';
+      const data = fileMap[name];
+
+      if (data.startsWith('data:image')) {
+        const img = new Image();
+        img.src = data;
+        prevC.append(img);
+        prevDl.href = data;
+        prevDl.download = name;
+        prevDl.style.display = 'block';
+      } else {
+        const byteString = atob(data.split(',')[1]);
+        const mimeType = data.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ia], { type: mimeType });
+        const blobUrl = URL.createObjectURL(blob);
+        const icon = document.createElement('div');
+        icon.className = 'file-icon';
+        icon.textContent = '📄';
+        prevC.append(icon);
+        prevDl.href = blobUrl;
+        prevDl.download = name;
+        prevDl.style.display = 'block';
+      }
+      prevO.style.display = 'flex';
+    }
+
+    function renderEntry(filename, entry) {
+      const li = document.createElement('li');
+      li.className = 'task';
+      const header = document.createElement('div');
+      header.className = 'task-header';
+
+      const dt = new Date(entry.date);
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      if (entry.done) {
+        li.classList.add('done');
+      } else if (dt.toDateString() === now.toDateString() || dt.toDateString() === tomorrow.toDateString()) {
+        header.classList.add('due-soon');
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const dateEl = document.createElement('span');
+      dateEl.className = 'date';
+      dateEl.textContent = formatDate(entry.date);
+      const subjEl = document.createElement('span');
+      subjEl.className = 'subject';
+      subjEl.textContent = entry.subject;
+      meta.append(dateEl, subjEl);
+
+      const content = document.createElement('div');
+      content.className = 'content';
+      const titleEl = document.createElement('div');
+      titleEl.className = 'title';
+      titleEl.textContent = entry.title;
+      content.append(titleEl);
+      if (entry.description) {
+        const descEl = document.createElement('div');
+        descEl.className = 'description';
+        descEl.textContent = entry.description;
+        content.append(descEl);
+      }
+
+      const attachmentsDiv = document.createElement('div');
+      attachmentsDiv.className = 'attachments';
+      entry.attachments.forEach(name => {
+        const span = document.createElement('div');
+        span.className = 'attachment';
+        const iconEl = document.createElement('span');
+        iconEl.className = 'icon';
+        const ext = name.split('.').pop().toLowerCase();
+        iconEl.textContent = (['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄');
+        const txt = document.createElement('span');
+        txt.textContent = name;
+        txt.title = name;
+        span.append(iconEl, txt);
+        span.addEventListener('click', () => openPreview(name));
+        attachmentsDiv.append(span);
+      });
+
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'checkbox';
+      chk.checked = entry.done;
+      chk.addEventListener('change', async () => {
+        entry.done = chk.checked;
+        await saveEntryToStorage(filename, entry);
+        loadTasks();
+      });
+      controls.append(chk);
+
+      if (entry.origin === 'student') {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-button';
+        editBtn.textContent = '✏️';
+        editBtn.addEventListener('click', () => {
+          editKey = filename;
+          subjI.value = entry.subject;
+          titleI.value = entry.title;
+          descI.value = entry.description || '';
+          dateI.value = entry.date;
+          attachI.value = '';
+        });
+        controls.append(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'trash-button';
+        delBtn.textContent = '🗑️';
+        delBtn.addEventListener('click', () => deleteTask(filename));
+        controls.append(delBtn);
+      }
+
+      header.append(meta, content, controls);
+      li.append(header);
+      if (entry.attachments.length) {
+        li.append(attachmentsDiv);
+      }
+      listEl.appendChild(li);
+    }
+
+    // Initialisierung
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('preview-overlay').style.display = 'none';
+      checkLogin();
+    });
   </script>
 </body>
 </html>
