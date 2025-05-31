@@ -43,68 +43,218 @@
     </form>
     <ul class="task-list" id="task-list"></ul>
   </div>
-  <script>
-    const STORAGE_KEY = 'hausaufgaben_entries';
-    const fileMap = {};
+ <script>
+  // ===== STORAGE-Adapter =====
+  const STORAGE_KEY = 'hausaufgaben_entries';
+  const fileMap = {};
 
-    async function loadEntries() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    }
+  async function loadEntries() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }
 
-    async function saveEntryToStorage(fn, entry) {
-      if (entry.attachments && entry.attachments.length) {
-        entry.fileData = entry.fileData || {};
-        entry.attachments.forEach(name => {
-          if (fileMap[name]) entry.fileData[name] = fileMap[name];
-        });
-      }
-
-      const list = await loadEntries();
-      const i = list.findIndex(e => e.filename === fn);
-      if (i >= 0) list[i].entry = entry;
-      else list.push({ filename: fn, entry });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    }
-
-    const form = document.getElementById('task-form');
-    const subjI = document.getElementById('task-subject');
-    const titleI = document.getElementById('task-title');
-    const dateI = document.getElementById('task-date');
-    const descI = document.getElementById('task-desc');
-    const attachI = document.getElementById('task-attachments');
-    const fileNames = document.getElementById('file-names');
-
-    attachI.addEventListener('change', () => {
-      const files = Array.from(attachI.files);
-      fileNames.textContent = files.map(f => f.name).join(', ');
-      files.forEach(f => {
-        const reader = new FileReader();
-        reader.onload = e => fileMap[f.name] = e.target.result;
-        reader.readAsDataURL(f);
+  async function saveEntryToStorage(fn, entry) {
+    if (entry.attachments && entry.attachments.length) {
+      entry.fileData = entry.fileData || {};
+      entry.attachments.forEach(name => {
+        if (fileMap[name]) entry.fileData[name] = fileMap[name];
       });
+    }
+
+    const list = await loadEntries();
+    const i = list.findIndex(e => e.filename === fn);
+    if (i >= 0) list[i].entry = entry;
+    else list.push({ filename: fn, entry });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  }
+
+  // ===== DOM-Referenzen =====
+  const form      = document.getElementById('task-form');
+  const subjI     = document.getElementById('task-subject');
+  const titleI    = document.getElementById('task-title');
+  const dateI     = document.getElementById('task-date');
+  const descI     = document.getElementById('task-desc');
+  const attachI   = document.getElementById('task-attachments');
+  const fileNames = document.getElementById('file-names');
+
+  // ===== FileReader: Data-URIs speichern =====
+  attachI.addEventListener('change', () => {
+    const files = Array.from(attachI.files);
+    fileNames.textContent = files.map(f => f.name).join(', ');
+    files.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = e => fileMap[f.name] = e.target.result;
+      reader.readAsDataURL(f);
     });
+  });
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const subject = subjI.value;
-      const title = titleI.value.trim();
-      const date = dateI.value;
-      const description = descI.value.trim();
-      const attachments = Array.from(attachI.files).map(f => f.name);
+  // ===== Neue Aufgabe hinzufügen =====
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const subject     = subjI.value;
+    const title       = titleI.value.trim();
+    const date        = dateI.value;
+    const description = descI.value.trim();
+    const attachments = Array.from(attachI.files).map(f => f.name);
 
-      if (!subject || !title || !date) return;
+    if (!subject || !title || !date) return;
 
-      const entry = {
-        date, subject, title, description, done: false, attachments, origin: 'student'
-      };
+    const entry = {
+      date,
+      subject,
+      title,
+      description,
+      done: false,
+      attachments,
+      origin: 'student'
+    };
 
-      const fn = `${date}_${subject}_${title.replace(/\s+/g, '_')}.json`;
-      await saveEntryToStorage(fn, entry);
-      form.reset();
-      fileNames.textContent = 'Datei/Foto auswählen';
-    });
+    const fn = `${date}_${subject}_${title.replace(/\s+/g, '_')}.json`;
+    await saveEntryToStorage(fn, entry);
+    form.reset();
+    fileNames.textContent = 'Datei/Foto auswählen';
+    // ← NEU: Nach dem Speichern laden wir alle Einträge neu
+    loadTasks();
+  });
+
+  // ===== Aufgaben laden und rendern =====
+  async function loadTasks() {
+    const listEl = document.getElementById('task-list');
+    listEl.innerHTML = '';       // Liste vorab leeren
+    const items = await loadEntries();
+    // Nach Datum sortieren
+    items.sort((a, b) => new Date(a.entry.date) - new Date(b.entry.date));
+    for (const item of items) {
+      const filename = item.filename;
+      const entry    = item.entry;
+      // FileMap aus entry.fileData wiederherstellen
+      if (entry.fileData) {
+        for (const [name, data] of Object.entries(entry.fileData)) {
+          fileMap[name] = data;
+        }
+      }
+      renderEntry(filename, entry);
+    }
+  }
+
+  // ===== Einzelne Aufgabe in die Liste einfügen =====
+  function renderEntry(filename, entry) {
+    const listEl = document.getElementById('task-list');
+    const li     = document.createElement('li');
+    li.className = 'task';
+
+    const header = document.createElement('div');
+    header.className = 'task-header';
+
+    // Meta-Bereich (Datum, Fach)
+    const meta   = document.createElement('div');
+    meta.className = 'meta';
+    const dateEl = document.createElement('span');
+    dateEl.className = 'date';
+    const [y, m, d] = entry.date.split('-');
+    const monate = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+    dateEl.textContent = parseInt(d,10) + '. ' + monate[parseInt(m,10)-1] + ' ' + y;
+    const subjEl = document.createElement('span');
+    subjEl.className = 'subject';
+    subjEl.textContent = entry.subject;
+    meta.append(dateEl, subjEl);
+
+    // Inhalt (Titel + Beschreibung)
+    const content = document.createElement('div');
+    content.className = 'content';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'title';
+    titleEl.textContent = entry.title;
+    content.append(titleEl);
+    if (entry.description) {
+      const descEl = document.createElement('div');
+      descEl.className = 'description';
+      descEl.textContent = entry.description;
+      content.append(descEl);
+    }
+
+    // Anhänge (falls vorhanden)
+    let attachmentsDiv = null;
+    if (entry.attachments && entry.attachments.length) {
+      attachmentsDiv = document.createElement('div');
+      attachmentsDiv.className = 'attachments';
+      for (const name of entry.attachments) {
+        const span = document.createElement('div');
+        span.className = 'attachment';
+        const iconEl = document.createElement('span');
+        iconEl.className = 'icon';
+        const ext = name.split('.').pop().toLowerCase();
+        iconEl.textContent = ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄';
+        const txt = document.createElement('span');
+        txt.textContent = name;
+        txt.title = name;
+        span.append(iconEl, txt);
+        span.addEventListener('click', () => openPreview(name));
+        attachmentsDiv.append(span);
+      }
+    }
+
+    // Komplettes Element zusammenbauen
+    header.append(meta, content);
+    li.append(header);
+    if (attachmentsDiv) li.append(attachmentsDiv);
+    listEl.appendChild(li);
+  }
+
+  // ===== Vorschau-Overlay-Funktion =====
+  function openPreview(name) {
+    if (!fileMap[name]) return;
+    const prevO  = document.getElementById('preview-overlay');
+    const prevC  = document.getElementById('preview-content');
+    const prevDl = document.getElementById('preview-download');
+    prevC.innerHTML = '';
+    prevDl.style.display = 'none';
+
+    const data = fileMap[name];
+    if (data.startsWith('data:image')) {
+      const img = new Image();
+      img.src = data;
+      prevC.append(img);
+      prevDl.href = data;
+      prevDl.download = name;
+      prevDl.style.display = 'block';
+    } else {
+      const byteString = atob(data.split(',')[1]);
+      const mimeType = data.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ia], { type: mimeType });
+      const blobUrl = URL.createObjectURL(blob);
+      const icon = document.createElement('div');
+      icon.className = 'file-icon';
+      icon.textContent = '📄';
+      prevC.append(icon);
+      prevDl.href = blobUrl;
+      prevDl.download = name;
+      prevDl.style.display = 'block';
+    }
+    prevO.style.display = 'flex';
+  }
+
+  // ===== Initialer Aufruf beim Laden =====
+  window.addEventListener('DOMContentLoaded', () => {
+    loadTasks();
+  });
 </script>
+
+<!-- Service Worker-Registrierung MUSS hier stehen, vor </body> -->
+<script>
+  if ('serviceWorker' in navigator) {
+    console.log('Registriere Service Worker…');
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('Service Worker registriert mit Scope:', reg.scope))
+      .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
+  }
+</script>
+
 <!-- Service Worker-Registrierung MUSS hier stehen, vor </body> -->
 <script>
   if ('serviceWorker' in navigator) {
