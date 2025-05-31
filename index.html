@@ -104,14 +104,15 @@
       form.reset();
       fileNames.textContent = 'Datei/Foto auswählen';
     });
- + </script>
-+
-+ <!-- Service Worker-Registrierung MUSS hier stehen, vor </body> -->
-+ <script>
-+   if ('serviceWorker' in navigator) {
-+     navigator.serviceWorker.register('./service-worker.js')
-+       .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
-+   }
-+ </script>
-+</body>
-+</html>
+</script>
+<!-- Service Worker-Registrierung MUSS hier stehen, vor </body> -->
+<script>
+  if ('serviceWorker' in navigator) {
+    console.log('Registriere Service Worker…');
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('Service Worker registriert mit Scope:', reg.scope))
+      .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
+  }
+</script>
+</body>
+</html>
