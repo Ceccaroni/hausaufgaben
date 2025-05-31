@@ -1,109 +1,550 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Hausaufgaben – Schüler:innen-Übersicht</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hausaufgaben – Schüler:innen-Übersicht</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #E6F5FF; margin: 0; padding: 0; }
-    .header { background: #0078D4; color: white; padding: 1em; text-align: center; font-size: 1.25rem; }
-    .container { max-width: 700px; margin: 1em auto; background: white; padding: 1em; border-radius: 8px; }
-    .task-form { display: flex; flex-wrap: wrap; gap: 0.5em; margin-bottom: 1em; }
-    .task-form select, .task-form input[type="text"], .task-form input[type="date"], .task-form textarea {
-      flex: 1 1 calc(33% - 0.5em); padding: 0.5em; font-size: 1rem; box-sizing: border-box;
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #E6F5FF;
+      color: #333;
     }
-    .task-form textarea { flex: 1 1 100%; height: 80px; }
-    .file-label { flex: 1 1 calc(70% - 0.5em); display: flex; align-items: center; padding: 0.5em; background: #F8FBFF;
-      border: 1px solid #CBD4E1; border-radius: 4px; cursor: pointer; }
-    .file-label input { display: none; }
-    .file-label .icon { font-size: 1rem; }
-    .file-label span { margin-left: 0.5em; font-size: 0.9rem; }
-    .task-form button { flex: 1 1 calc(30% - 0.5em); background: #0078D4; color: white; border: none;
-      padding: 0.75em; font-size: 1rem; border-radius: 4px; cursor: pointer; }
+    .logo {
+      display: block;
+      margin: 1em auto;
+      max-height: 50px;
+    }
+    .header {
+      text-align: center;
+      padding: 1em;
+      background: #0078D4;
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 700px;
+      margin: 1em auto;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      padding: 1em;
+    }
+    /* Formular */
+    .task-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin-bottom: 1em;
+      align-items: center;
+    }
+    .task-form select,
+    .task-form input[type="date"],
+    .task-form input[type="text"] {
+      flex: 1 1 150px;
+      padding: 0.5em;
+      border: 1px solid #CBD4E1;
+      border-radius: 4px;
+      background: #F8FBFF;
+      box-sizing: border-box;
+    }
+    /* Datei-Button */
+    .file-label {
+      flex: 1 1 calc(70% - 0.5em);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 44px;
+      background: #F8FBFF;
+      border: 1px solid #CBD4E1;
+      border-radius: 4px;
+      box-sizing: border-box;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .file-label .icon {
+      font-size: 1.2rem;
+      color: #555;
+    }
+    .file-label span {
+      margin-left: 0.5em;
+      font-size: 0.9rem;
+      color: #555;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80%;
+    }
+    .file-label input {
+      display: none;
+    }
+    .task-form button {
+      flex: 1 1 calc(30% - 0.5em);
+      background: #0078D4;
+      color: #fff;
+      border: none;
+      padding: 0.75em;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+    /* Vorschau-Overlay */
+    #preview-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #preview-modal {
+      background: #fff;
+      border-radius: 12px;
+      max-width: 80%;
+      max-height: 80%;
+      padding: 16px;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      overflow: auto;
+    }
+    #preview-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #555;
+    }
+    #preview-content img,
+    #preview-content .file-icon {
+      max-width: 100%;
+      max-height: 70vh;
+      display: block;
+      margin: 0 auto;
+    }
+    .download-btn {
+      display: none;
+      margin: 12px auto 0;
+      padding: 0.5em 1em;
+      background: #0078D4;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    /* Liste */
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .task {
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #CBD4E1;
+      box-sizing: border-box;
+    }
+    .task:nth-child(even) {
+      background: #F9FBFD;
+    }
+    .task:last-child {
+      border-bottom: none;
+    }
+    .task-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5em;
+      padding: 1em 0 0.5em;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .meta {
+      width: 11em;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .meta .date {
+      display: block;
+    }
+    .meta .subject {
+      display: block;
+      font-weight: 600;
+      margin-top: 0.25em;
+    }
+    .content {
+      flex-grow: 1;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .content .title {
+      font-weight: bold;
+    }
+    .content .description {
+      margin-top: 0.25em;
+      color: #555;
+      font-size: 0.9rem;
+    }
+    .attachments {
+      padding: 0 0 1em 11em;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25em;
+      box-sizing: border-box;
+    }
+    .attachment {
+      display: flex;
+      align-items: center;
+      gap: 0.25em;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .attachment .icon {
+      font-size: 1rem;
+    }
+    .attachment span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80%;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-left: auto;
+      box-sizing: border-box;
+    }
+    .edit-button, .trash-button {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: #888;
+      cursor: pointer;
+      padding: 0.2em;
+      border-radius: 50%;
+      transition: background 0.2s, color 0.2s;
+      box-sizing: border-box;
+    }
+    .edit-button:hover, .trash-button:hover {
+      background: rgba(0,0,0,0.05);
+      color: #333;
+    }
+    .checkbox {
+      margin-left: 0.5em;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .task.done .task-header::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #60B664;
+      box-sizing: border-box;
+    }
+    .task.done .task-header {
+      background: #F8FFF8;
+      position: relative;
+      padding-left: 0.75em;
+      box-sizing: border-box;
+    }
+    .task.done .attachments {
+      opacity: 0.6;
+      box-sizing: border-box;
+    }
+    .due-soon {
+      background: #FFF8E1;
+      box-sizing: border-box;
+    }
+    @media(max-width:600px) {
+      body { font-size: 115%; }
+      .header { font-size: 1.1rem; }
+      .task-header { flex-direction: column; align-items: flex-start; }
+      .attachments { padding: 0.5em 0; }
+      .task-form { flex-direction: column; }
+      .task-form select,
+      .task-form input[type="date"],
+      .task-form input[type="text"],
+      .task-form .file-label,
+      .task-form button {
+        flex: 1 1 auto;
+      }
+    }
   </style>
 </head>
 <body>
+  <img src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" alt="Schullogo" class="logo">
   <div class="header">Hausaufgabenübersicht</div>
   <div class="container">
+    <!-- Formular für neue Aufgabe -->
     <form class="task-form" id="task-form">
       <select id="task-subject" required>
         <option value="">Fach wählen</option>
-        <option>Deutsch</option><option>Mathematik</option><option>Englisch</option>
+        <option>BG</option><option>Deutsch</option><option>Englisch</option><option>ERG</option>
+        <option>Französisch</option><option>HW</option><option>Italienisch</option>
+        <option>IVE</option><option>Mathematik</option><option>MI</option>
+        <option>NT</option><option>RZG</option><option>TG/XG</option><option>WAH</option>
       </select>
       <input type="text" id="task-title" placeholder="Titel" required>
       <input type="date" id="task-date" required>
-      <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
       <label class="file-label">
         <span class="icon">📎</span>
-        <span id="file-names">Datei/Foto auswählen</span>
+        <span id="file-names" title="">Datei/Foto auswählen</span>
         <input type="file" id="task-attachments" multiple>
       </label>
       <button type="submit">Hinzufügen</button>
     </form>
+
     <ul class="task-list" id="task-list"></ul>
   </div>
-  <script>
-    const STORAGE_KEY = 'hausaufgaben_entries';
-    const fileMap = {};
 
-    async function loadEntries() {
+  <!-- Vorschau-Overlay -->
+  <div id="preview-overlay">
+    <div id="preview-modal">
+      <button id="preview-close">×</button>
+      <div id="preview-content"></div>
+      <a id="preview-download" class="download-btn" href>Download</a>
+    </div>
+  </div>
+
+  <script>
+    // ===== STORAGE-Adapter mit localStorage-Fallback =====
+    const STORAGE_KEY = 'hausaufgaben_entries';
+
+    async function loadEntriesFromStorage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
     }
 
-    async function saveEntryToStorage(fn, entry) {
+    async function saveEntryToStorage(filename, entry) {
+      // fileData speichern (falls vorhanden)
       if (entry.attachments && entry.attachments.length) {
         entry.fileData = entry.fileData || {};
         entry.attachments.forEach(name => {
-          if (fileMap[name]) entry.fileData[name] = fileMap[name];
+          if (fileMap[name]) {
+            entry.fileData[name] = fileMap[name];
+          }
         });
       }
 
-      const list = await loadEntries();
-      const i = list.findIndex(e => e.filename === fn);
-      if (i >= 0) list[i].entry = entry;
-      else list.push({ filename: fn, entry });
+      const list = await loadEntriesFromStorage();
+      const idx = list.findIndex(e => e.filename === filename);
+      if (idx >= 0) {
+        list[idx].entry = entry;
+      } else {
+        list.push({ filename, entry });
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
-    const form = document.getElementById('task-form');
-    const subjI = document.getElementById('task-subject');
-    const titleI = document.getElementById('task-title');
-    const dateI = document.getElementById('task-date');
-    const descI = document.getElementById('task-desc');
+    async function deleteEntryFromStorage(filename) {
+      let list = await loadEntriesFromStorage();
+      list = list.filter(e => e.filename !== filename);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+    // =====================================================
+
+    // Datei-Mapping (Name → Data-URI)
+    const fileMap = {};
+
+    const MONATE = [
+      "Januar","Februar","März","April","Mai","Juni",
+      "Juli","August","September","Oktober","November","Dezember"
+    ];
+    function formatDate(d) {
+      const [y,m,day] = d.split('-');
+      return parseInt(day,10) + '. ' + MONATE[parseInt(m,10)-1] + ' ' + y;
+    }
+
+    // DOM-Referenzen
+    const listEl = document.getElementById('task-list');
+    const form    = document.getElementById('task-form');
+    const subjI   = document.getElementById('task-subject');
+    const titleI  = document.getElementById('task-title');
+    const dateI   = document.getElementById('task-date');
     const attachI = document.getElementById('task-attachments');
     const fileNames = document.getElementById('file-names');
+    let editKey = null;
 
+    // FileReader: Data-URIs speichern
     attachI.addEventListener('change', () => {
       const files = Array.from(attachI.files);
       fileNames.textContent = files.map(f => f.name).join(', ');
+      fileNames.title = files.map(f => f.name).join('\n');
       files.forEach(f => {
         const reader = new FileReader();
-        reader.onload = e => fileMap[f.name] = e.target.result;
+        reader.onload = e => {
+          fileMap[f.name] = e.target.result;
+        };
         reader.readAsDataURL(f);
       });
     });
 
+    // Neue Aufgabe hinzufügen / bearbeiten
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      const subject = subjI.value;
-      const title = titleI.value.trim();
-      const date = dateI.value;
-      const description = descI.value.trim();
+      const subject     = subjI.value;
+      const title       = titleI.value.trim();
+      const date        = dateI.value;
       const attachments = Array.from(attachI.files).map(f => f.name);
 
       if (!subject || !title || !date) return;
 
       const entry = {
-        date, subject, title, description, done: false, attachments, origin: 'student'
+        date,
+        subject,
+        title,
+        done: false,
+        attachments,
+        origin: 'student'
       };
 
-      const fn = `${date}_${subject}_${title.replace(/\s+/g, '_')}.json`;
-      await saveEntryToStorage(fn, entry);
+      let fn;
+      if (editKey) {
+        fn = editKey;
+        await saveEntryToStorage(fn, entry);
+        editKey = null;
+      } else {
+        fn = `${date}_${subject}_${title.replace(/\s+/g, '_')}.json`;
+        await saveEntryToStorage(fn, entry);
+      }
+
       form.reset();
       fileNames.textContent = 'Datei/Foto auswählen';
+      loadTasks();
     });
-  </script>
-</body>
-</html>
+
+    // Aufgaben laden
+    async function loadTasks() {
+      listEl.innerHTML = '';
+      const items = await loadEntriesFromStorage();
+      items.sort((a, b) => new Date(a.entry.date) - new Date(b.entry.date));
+
+      items.forEach(item => {
+        // fileData zurück in fileMap bringen
+        if (item.entry.fileData) {
+          Object.entries(item.entry.fileData).forEach(([name, data]) => {
+            fileMap[name] = data;
+          });
+        }
+        renderEntry(item.filename, item.entry);
+      });
+    }
+
+    // Aufgabe löschen
+    async function deleteTask(fn) {
+      if (!confirm('Eintrag wirklich löschen?')) return;
+      await deleteEntryFromStorage(fn);
+      loadTasks();
+    }
+
+    // Vorschau-Overlay
+    const prevO  = document.getElementById('preview-overlay');
+    const prevC  = document.getElementById('preview-content');
+    const prevDl = document.getElementById('preview-download');
+    document.getElementById('preview-close').addEventListener('click', () => {
+      prevO.style.display = 'none';
+    });
+
+    function openPreview(name) {
+      if (!fileMap[name]) return;
+      prevC.innerHTML = '';
+      prevDl.style.display = 'none';
+
+      const data = fileMap[name];
+      if (data.startsWith('data:image')) {
+        const img = new Image();
+        img.src = data;
+        prevC.append(img);
+        prevDl.href = data;
+        prevDl.download = name;
+        prevDl.style.display = 'block';
+      } else {
+        const byteString = atob(data.split(',')[1]);
+        const mimeType = data.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ia], { type: mimeType });
+        const blobUrl = URL.createObjectURL(blob);
+        const icon = document.createElement('div');
+        icon.className = 'file-icon';
+        icon.textContent = '📄';
+        prevC.append(icon);
+        prevDl.href = blobUrl;
+        prevDl.download = name;
+        prevDl.style.display = 'block';
+      }
+      prevO.style.display = 'flex';
+    }
+
+    // Einzelne Aufgabe rendern
+    function renderEntry(filename, entry) {
+      const li = document.createElement('li');
+      li.className = 'task';
+      const header = document.createElement('div');
+      header.className = 'task-header';
+
+      const dt = new Date(entry.date);
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      if (entry.done) {
+        li.classList.add('done');
+      } else if (dt.toDateString() === now.toDateString() || dt.toDateString() === tomorrow.toDateString()) {
+        header.classList.add('due-soon');
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const dateEl = document.createElement('span');
+      dateEl.className = 'date';
+      dateEl.textContent = formatDate(entry.date);
+      const subjEl = document.createElement('span');
+      subjEl.className = 'subject';
+      subjEl.textContent = entry.subject;
+      meta.append(dateEl, subjEl);
+
+      const content = document.createElement('div');
+      content.className = 'content';
+      const titleEl = document.createElement('div');
+      titleEl.className = 'title';
+      titleEl.textContent = entry.title;
+      content.append(titleEl);
+
+      const attachmentsDiv = document.createElement('div');
+      attachmentsDiv.className = 'attachments';
+      entry.attachments.forEach(name => {
+        const span = document.createElement('div');
+        span.className = 'attachment';
+        const iconEl = document.createElement('span');
+        iconEl.className = 'icon';
+        const ext = name.split('.').pop().toLowerCase();
+        iconEl.textContent = ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄';
+        const txt = document.createElement('span');
+        txt.textContent = name;
+        txt.title = name;
+        span.append(iconEl, txt);
+        span.addEventListener('click', () => openPreview(name));
+        attachmentsDiv.append(span);
+      });
+
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      const chk = document.createElement('input');
+      chk
