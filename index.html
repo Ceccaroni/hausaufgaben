@@ -1,6 +1,5 @@
 
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
   <meta charset="UTF-8">
@@ -22,49 +21,10 @@
     .file-label span { margin-left: 0.5em; font-size: 0.9rem; }
     .task-form button { flex: 1 1 calc(30% - 0.5em); background: #0078D4; color: white; border: none;
       padding: 0.75em; font-size: 1rem; border-radius: 4px; cursor: pointer; }
-    .task-list { list-style: none; padding: 0; margin: 0; }
-    .task { display: flex; flex-direction: column; border-bottom: 1px solid #CBD4E1; box-sizing: border-box; }
-    .task:nth-child(even) { background: #F9FBFD; }
-    .task:last-child { border-bottom: none; }
-    .task-header { display: flex; align-items: flex-start; gap: 0.5em; padding: 1em 0 0.5em; position: relative; }
-    .meta { width: 11em; font-size: 0.9rem; flex-shrink: 0; }
-    .meta .date { display: block; }
-    .meta .subject { display: block; font-weight: 600; margin-top: 0.25em; }
-    .content { flex-grow: 1; font-size: 1rem; box-sizing: border-box; }
-    .content .title { font-weight: bold; }
-    .content .description { margin-top: 0.25em; color: #555; font-size: 0.9rem; }
-    .attachments { padding: 0 0 1em 11em; display: flex; flex-direction: column; gap: 0.25em; box-sizing: border-box; }
-    .attachment { display: flex; align-items: center; gap: 0.25em; font-size: 0.9rem; cursor: pointer; }
-    .attachment .icon { font-size: 1rem; }
-    .attachment span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%; }
-    .controls { display: flex; align-items: center; gap: 0.5em; margin-left: auto; box-sizing: border-box; }
-    .checkbox { margin-left: 0.5em; flex-shrink: 0; box-sizing: border-box; }
-    .task.done .task-header::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #60B664; box-sizing: border-box; }
-    .task.done .task-header { background: #F8FFF8; position: relative; padding-left: 0.75em; box-sizing: border-box; }
-    .task.done .attachments { opacity: 0.6; box-sizing: border-box; }
-    .due-today { background: #FFF8E1; }
-    .overdue { border: 1px solid #E81123; }
-    @media(max-width:600px) {
-      body { font-size: 115%; }
-      .task-header { flex-direction: column; align-items: flex-start; }
-      .attachments { padding: 0.5em 0; }
-      .task-form { flex-direction: column; }
-      .task-form select,
-      .task-form input[type="date"],
-      .task-form input[type="text"],
-      .task-form textarea,
-      .task-form .file-label,
-      .task-form button { flex: 1 1 auto; }
-    }
   </style>
 </head>
 <body>
   <div class="header">Hausaufgabenübersicht</div>
-  <nav class="tabs">
-    <button id="show-today" class="active">Heute</button>
-    <button id="show-all">Alle Aufgaben</button>
-    <button id="show-done">Erledigt</button>
-  </nav>
   <div class="container">
     <form class="task-form" id="task-form">
       <select id="task-subject" required>
@@ -82,245 +42,77 @@
       <button type="submit">Hinzufügen</button>
     </form>
     <ul class="task-list" id="task-list"></ul>
-    <ul class="task-list" id="done-list"></ul>
-  </div>
-  <div id="preview-overlay">
-    <div id="preview-modal">
-      <button id="preview-close">×</button>
-      <div id="preview-content"></div>
-      <a id="preview-download" class="download-btn" href>Download</a>
-    </div>
   </div>
   <script>
-    // ===== STORAGE-Adapter =====
     const STORAGE_KEY = 'hausaufgaben_entries';
     const fileMap = {};
 
-```
-async function loadEntries() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
+    async function loadEntries() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
 
-async function saveEntryToStorage(fn, entry) {
-  if (entry.attachments && entry.attachments.length) {
-    entry.fileData = entry.fileData || {};
-    entry.attachments.forEach(name => {
-      if (fileMap[name]) entry.fileData[name] = fileMap[name];
-    });
-  }
+    async function saveEntryToStorage(fn, entry) {
+      if (entry.attachments && entry.attachments.length) {
+        entry.fileData = entry.fileData || {};
+        entry.attachments.forEach(name => {
+          if (fileMap[name]) entry.fileData[name] = fileMap[name];
+        });
+      }
 
-  const list = await loadEntries();
-  const i = list.findIndex(e => e.filename === fn);
-  if (i >= 0) list[i].entry = entry;
-  else list.push({ filename: fn, entry });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
+      const list = await loadEntries();
+      const i = list.findIndex(e => e.filename === fn);
+      if (i >= 0) list[i].entry = entry;
+      else list.push({ filename: fn, entry });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
 
-async function deleteEntryFromStorage(fn) {
-  let list = await loadEntries();
-  list = list.filter(e => e.filename !== fn);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
+    const form = document.getElementById('task-form');
+    const subjI = document.getElementById('task-subject');
+    const titleI = document.getElementById('task-title');
+    const dateI = document.getElementById('task-date');
+    const descI = document.getElementById('task-desc');
+    const attachI = document.getElementById('task-attachments');
+    const fileNames = document.getElementById('file-names');
 
-// ===== Formatierung =====
-const MONATE = [
-  "Januar","Februar","März","April","Mai","Juni",
-  "Juli","August","September","Oktober","November","Dezember"
-];
-function formatDate(d) {
-  const [y,m,day] = d.split('-');
-  return parseInt(day,10) + '. ' + MONATE[parseInt(m,10)-1] + ' ' + y;
-}
-
-// ===== DOM-Referenzen =====
-const listEl   = document.getElementById('task-list');
-const doneEl   = document.getElementById('done-list');
-const form     = document.getElementById('task-form');
-const subjI    = document.getElementById('task-subject');
-const titleI   = document.getElementById('task-title');
-const dateI    = document.getElementById('task-date');
-const descI    = document.getElementById('task-desc');
-const attachI  = document.getElementById('task-attachments');
-const fileNames= document.getElementById('file-names');
-let editKey = null;
-
-// ===== FileReader: Data-URIs speichern =====
-attachI.addEventListener('change', () => {
-  const files = Array.from(attachI.files);
-  fileNames.textContent = files.map(f => f.name).join(', ');
-  files.forEach(f => {
-    const reader = new FileReader();
-    reader.onload = e => fileMap[f.name] = e.target.result;
-    reader.readAsDataURL(f);
-  });
-});
-
-// ===== Neue Aufgabe hinzufügen / bearbeiten =====
-form.addEventListener('submit', async e => {
-  e.preventDefault();
-  const subject     = subjI.value;
-  const title       = titleI.value.trim();
-  const date        = dateI.value;
-  const description = descI.value.trim();
-  const attachments = Array.from(attachI.files).map(f => f.name);
-
-  if (!subject || !title || !date) return;
-
-  const entry = {
-    date,
-    subject,
-    title,
-    description,
-    done: false,
-    attachments,
-    origin: 'student'
-  };
-
-  const fn = `${date}_${subject}_${title.replace(/\s+/g, '_')}.json`;
-  await saveEntryToStorage(fn, entry);
-  form.reset();
-  fileNames.textContent = 'Datei/Foto auswählen';
-  loadTasks();
-});
-
-// ===== Aufgaben laden =====
-async function loadTasks(filter = 'today') {
-  listEl.innerHTML = '';
-  doneEl.innerHTML = '';
-  const items = await loadEntries();
-  const heute = new Date();
-  items.sort((a,b) => new Date(a.entry.date) - new Date(b.entry.date));
-
-  items.forEach(item => {
-    const entry = item.entry;
-    // FileMap wieder befüllen
-    if (entry.fileData) {
-      Object.entries(entry.fileData).forEach(([name, data]) => {
-        fileMap[name] = data;
+    attachI.addEventListener('change', () => {
+      const files = Array.from(attachI.files);
+      fileNames.textContent = files.map(f => f.name).join(', ');
+      files.forEach(f => {
+        const reader = new FileReader();
+        reader.onload = e => fileMap[f.name] = e.target.result;
+        reader.readAsDataURL(f);
       });
-    }
+    });
 
-    // Datum prüfen
-    const fdatum = new Date(entry.date + 'T00:00');
-    const isToday = (
-      fdatum.getDate() === heute.getDate() &&
-      fdatum.getMonth() === heute.getMonth() &&
-      fdatum.getFullYear() === heute.getFullYear()
-    );
-    const isOverdue = fdatum < heute && !entry.done;
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const subject = subjI.value;
+      const title = titleI.value.trim();
+      const date = dateI.value;
+      const description = descI.value.trim();
+      const attachments = Array.from(attachI.files).map(f => f.name);
 
-    // Filtern
-    if (
-      (filter === 'today' && isToday && !entry.done) ||
-      (filter === 'all' && !entry.done) ||
-      (filter === 'done' && entry.done)
-    ) {
-      renderEntry(item.filename, entry, isToday, isOverdue);
-    }
-  });
-}
+      if (!subject || !title || !date) return;
 
-// ===== Aufgabe rendern =====
-function renderEntry(filename, entry, isToday, isOverdue) {
-  const li = document.createElement('li');
-  li.className = 'task';
-  const header = document.createElement('div');
-  header.className = 'task-header';
+      const entry = {
+        date, subject, title, description, done: false, attachments, origin: 'student'
+      };
 
-  if (entry.done) {
-    li.classList.add('done');
-  } else if (isToday) {
-    header.classList.add('due-today');
-  } else if (isOverdue) {
-    header.classList.add('overdue');
+      const fn = `${date}_${subject}_${title.replace(/\s+/g, '_')}.json`;
+      await saveEntryToStorage(fn, entry);
+      form.reset();
+      fileNames.textContent = 'Datei/Foto auswählen';
+    });
+</script>
+<!-- Service Worker-Registrierung MUSS hier stehen, vor </body> -->
+<script>
+  if ('serviceWorker' in navigator) {
+    console.log('Registriere Service Worker…');
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('Service Worker registriert mit Scope:', reg.scope))
+      .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
   }
-
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-  const dateEl = document.createElement('span');
-  dateEl.className = 'date';
-  dateEl.textContent = formatDate(entry.date);
-  const subjEl = document.createElement('span');
-  subjEl.className = 'subject';
-  subjEl.textContent = entry.subject;
-  meta.append(dateEl, subjEl);
-
-  const content = document.createElement('div');
-  content.className = 'content';
-  const titleEl = document.createElement('div');
-  titleEl.className = 'title';
-  titleEl.textContent = entry.title;
-  content.append(titleEl);
-  if (entry.description) {
-    const descEl = document.createElement('div');
-    descEl.className = 'description';
-    descEl.textContent = entry.description;
-    content.append(descEl);
-  }
-
-  const attachmentsDiv = document.createElement('div');
-  attachmentsDiv.className = 'attachments';
-  entry.attachments.forEach(name => {
-    const span = document.createElement('div');
-    span.className = 'attachment';
-    const iconEl = document.createElement('span');
-    iconEl.className = 'icon';
-    const ext = name.split('.').pop().toLowerCase();
-    iconEl.textContent = ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄';
-    const txt = document.createElement('span');
-    txt.textContent = name;
-    txt.title = name;
-    span.append(iconEl, txt);
-    span.addEventListener('click', () => openPreview(name));
-    attachmentsDiv.append(span);
-  });
-
-  const controls = document.createElement('div');
-  controls.className = 'controls';
-  const chk = document.createElement('input');
-  chk.type = 'checkbox';
-  chk.className = 'checkbox';
-  chk.checked = entry.done;
-  chk.addEventListener('change', async () => {
-    entry.done = chk.checked;
-    await saveEntryToStorage(filename, entry);
-    loadTasks(document.querySelector('.tabs button.active').id.split('-')[1]);
-  });
-  controls.append(chk);
-
-  header.append(meta, content, controls);
-  li.append(header);
-  if (entry.attachments.length) li.append(attachmentsDiv);
-
-  if (entry.done) doneEl.appendChild(li);
-  else listEl.appendChild(li);
-}
-
-// ===== Vorschau-Overlay =====
-const prevO  = document.getElementById('preview-overlay');
-const prevC  = document.getElementById('preview-content');
-const prevDl = document.getElementById('preview-download');
-document.getElementById('preview-close').addEventListener('click', () => {
-  prevO.style.display = 'none';
-});
-
-function openPreview(name) {
-  if (!fileMap[name]) return;
-  prevC.innerHTML = '';
-  prevDl.style.display = 'none';
-
-  const data = fileMap[name];
-  if (data.startsWith('data:image')) {
-    const img = new Image();
-    img.src = data;
-    prevC.append(img);
-    prevDl.href = data;
-    prevDl.download = name;
-    prevDl.style.display = 'block';
-  } else {
-    const byteString = atob(data.split(',')[1]);
-    const mimeType = data.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-```
+</script>
+</body>
+</html>
