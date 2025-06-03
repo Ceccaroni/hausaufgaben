@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Hausaufgaben – Schüler:innen-Übersicht</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 1. Fade-CSS extern einbinden -->
+  <link rel="stylesheet" href="public/fade.css">
+
+  <!-- Ausgelagertes CSS -->
+  <!-- Gemeinsames Styling für Frontend & Backend -->
+  <link rel="stylesheet" href="public/style-shared.css">
+  <link rel="stylesheet" href="public/style-sus.css">
+  <!-- Dies ist der CSS-Link für das Frontend-Styling
+       Wird aktuell gebraucht, wegen abweichender Trashcanoption gegenüber style-shared.css -->
+</head>
+
+<body class="fade-initial">
+  <!-- === Header mit Logo und Titel === -->
+  <header role="banner">
+    <img 
+      class="school-logo" 
+      src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" 
+      alt="Schullogo">
+    <h1 class="header">Hausaufgabenübersicht</h1>
+
+    <!-- === Navigations-Tabs (TEACCH: konstante Navigation) === -->
+    <nav role="navigation" aria-label="Hauptnavigation">
+      <ul class="nav-tabs">
+        <li><a href="#heute" aria-current="page">Heute</a></li>
+        <li><a href="#alle">Alle Aufgaben</a></li>
+        <li><a href="#erledigt">Erledigt</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- === Main-Inhalt === -->
+  <main role="main">
+    <!-- 1) Bereich: Aufgaben für heute -->
+    <section id="heute" aria-labelledby="heute-title">
+      <h2 id="heute-title" class="visually-hidden">Aufgaben für heute</h2>
+      <!-- UL für Heute-Aufgaben wird per JS erzeugt -->
+    </section>
+
+    <!-- === Zwischenblock: Erfassungsformular === -->
+    <div class="container form-container">
+      <form class="task-form" id="task-form">
+        <select id="task-subject" required>
+          <option value="">Fach wählen</option>
+          <option>BG</option>
+          <option>Deutsch</option>
+          <option>Englisch</option>
+          <option>ERG</option>
+          <option>Französisch</option>
+          <option>HW</option>
+          <option>Italienisch</option>
+          <option>IVE</option>
+          <option>Mathematik</option>
+          <option>MI</option>
+          <option>NT</option>
+          <option>RZG</option>
+          <option>TG/XG</option>
+          <option>WAH</option>
+        </select>
+        <input type="text" id="task-title" placeholder="Titel" required>
+        <input type="date" id="task-date" required>
+        <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
+        <label class="file-label">
+          <span class="icon">📎</span>
+          <span id="file-names">Datei/Foto auswählen</span>
+          <input type="file" id="task-attachments" multiple>
+        </label>
+        <button type="submit">Hinzufügen</button>
+      </form>
+    </div>
+
+    <!-- 2) Bereich: Alle Aufgaben -->
+    <section id="alle" aria-labelledby="alle-title">
+      <h2 id="alle-title" class="visually-hidden">Alle Aufgaben</h2>
+      <!-- Abstand über der Liste -->
+      <div style="margin-top: 2em;"></div>
+      <!-- UL für Alle-Aufgaben wird per JS erzeugt -->
+    </section>
+
+    <!-- 3) Bereich: Erledigte Aufgaben -->
+    <section id="erledigt" aria-labelledby="erledigt-title">
+      <h2 id="erledigt-title" class="visually-hidden">Erledigte Aufgaben</h2>
+      <!-- UL für Erledigte-Aufgaben wird per JS erzeugt -->
+    </section>
+  </main>
+
+  <!-- === Vorschau-Overlay (Modal) === -->
+  <div id="preview-overlay">
+    <div id="preview-modal">
+      <button id="preview-close" aria-label="Vorschau schließen">×</button>
+      <div id="preview-content"></div>
+      <a id="preview-download" class="download-btn" href>Download</a>
+    </div>
+  </div>
+
+  <!-- Ausgelagertes JavaScript -->
+  <script src="public/sus.js"></script>
+
+  <!-- Fade-In beim Laden -->
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.remove('fade-initial');
+    });
+  </script>
+
+  <!-- Service Worker-Registrierung -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hausaufgaben-App – Anmeldung</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fade-CSS extern einbinden -->
+  <link rel="stylesheet" href="public/fade.css" />
+
+  <!-- Andere CSS-Dateien -->
+  <link rel="stylesheet" href="public/shared.css" />
+  <link rel="stylesheet" href="public/style-index.css" />
+
+  <!-- Inline-Styles bleiben gleich -->
+  <style>
+    /* ===== Reset ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    /* ===== Hintergrund & Schrift ===== */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #F2F2F5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1C1C1E;
+      /* opacity & transition sind jetzt in fade.css definiert */
+    }
+
+    /* ===== Container ===== */
+    .login-container {
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      width: 360px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    /* ===== Schullogo ===== */
+    .school-logo {
+      display: block;
+      margin: 0 auto 24px;
+      max-height: 60px;
+    }
+
+    /* ===== Überschrift ===== */
+    .login-container h1 {
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+      font-weight: 600;
+      color: #000;
+    }
+
+    /* ===== Formular ===== */
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .login-form label {
+      font-size: 0.9rem;
+      color: #3C3C4399;
+      text-align: left;
+    }
+
+    .login-form input[type="password"],
+    .login-form button {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #D1D1D6;
+      background: #F2F2F7;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .login-form input[type="password"]:focus {
+      border-color: #0A84FF;
+      background: #FFFFFF;
+    }
+
+    .login-form button {
+      background: #0A84FF;
+      color: #FFFFFF;
+      border: none;
+      cursor: pointer;
+    }
+
+    .login-form button:hover {
+      background: #0066CC;
+    }
+
+    /* ===== Schüler-Button ===== */
+    .btn-student {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border: 2px solid #0A84FF;
+      border-radius: 8px;
+      background: transparent;
+      color: #0A84FF;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-student:hover {
+      background: #E5F0FF;
+    }
+
+    /* ===== Fehlermeldung ===== */
+    .error {
+      color: #FF3B30;
+      font-size: 0.875rem;
+      margin-top: 8px;
+      display: none;
+      text-align: left;
+    }
+  </style>
+</head>
+<body class="fade-initial">
+  <div class="login-container">
+    <img
+      class="school-logo"
+      src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg"
+      alt="Schullogo Huttwil"
+    />
+    <h1>Anmeldung</h1>
+    <form id="teacher-form" class="login-form" autocomplete="off">
+      <input
+        type="password"
+        id="teacher-password"
+        name="password"
+        placeholder="Passwort eingeben"
+        required
+      />
+      <button type="submit">Login</button>
+      <div id="error-msg" class="error">Falsches Passwort</div>
+    </form>
+    <button id="student-btn" class="btn-student">Schüler-Anmeldung</button>
+  </div>
+
+  <script>
+    (function () {
+      const TEACHER_PWD = 'gmc666';
+      const form = document.getElementById('teacher-form');
+      const pwdInput = document.getElementById('teacher-password');
+      const errorMsg = document.getElementById('error-msg');
+      const studentBtn = document.getElementById('student-btn');
+
+      // Fade-In beim Laden
+      window.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.remove('fade-initial');
+      });
+
+ // 1. Fade-In beim Laden
+      window.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.remove('fade-initial');
+      });
+
+      // 2. Fade-Out-Funktion für Link-Wechsel
+      function navigateWithFade(targetUrl) {
+        document.body.classList.add('fade-out');
+        setTimeout(() => {
+          window.location.href = targetUrl;
+        }, 500);
+      }
+
+      // Lehrer-Login
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const entered = pwdInput.value.trim();
+        if (entered === TEACHER_PWD) {
+          navigateWithFade('admin.html');
+        } else {
+          errorMsg.style.display = 'block';
+          pwdInput.focus();
+        }
+      });
+
+      // Schüler-Anmeldung
+      studentBtn.addEventListener('click', function () {
+        navigateWithFade('sus.html');
+      });
+    })();
+  </script>
+</body>
+</html>
+
