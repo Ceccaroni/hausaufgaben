@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="public/fade.css" />
 
   <!-- Andere CSS-Dateien -->
-  <link rel="stylesheet" href="public/shared.css" />
+  <link rel="stylesheet" href="public/style-shared.css" />
   <link rel="stylesheet" href="public/style-index.css" />
 
   <!-- Inline-Styles bleiben gleich -->
@@ -130,7 +130,7 @@
   <div class="login-container">
     <img
       class="school-logo"
-      src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg"
+      src="assets/logo-huttwil.svg"
       alt="Schullogo Huttwil"
     />
     <h1>Anmeldung</h1>
@@ -150,18 +150,19 @@
 
   <script>
     (function () {
-      const TEACHER_PWD = 'gmc666';
+      // sha256 hash of the admin password 'gmc666'
+      const TEACHER_HASH = '8ba27988dfaeb57cfe7f3887fb4f0f72ed15b35a8a9bdad7ae795a5c89ac7988';
+
+      async function digest(msg) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
       const form = document.getElementById('teacher-form');
       const pwdInput = document.getElementById('teacher-password');
       const errorMsg = document.getElementById('error-msg');
       const studentBtn = document.getElementById('student-btn');
 
       // Fade-In beim Laden
-      window.addEventListener('DOMContentLoaded', () => {
-        document.body.classList.remove('fade-initial');
-      });
-
- // 1. Fade-In beim Laden
       window.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('fade-initial');
       });
@@ -175,10 +176,11 @@
       }
 
       // Lehrer-Login
-      form.addEventListener('submit', function (e) {
+      form.addEventListener('submit', async function (e) {
         e.preventDefault();
         const entered = pwdInput.value.trim();
-        if (entered === TEACHER_PWD) {
+        const hash = await digest(entered);
+        if (hash === TEACHER_HASH) {
           navigateWithFade('admin.html');
         } else {
           errorMsg.style.display = 'block';

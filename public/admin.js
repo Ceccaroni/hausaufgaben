@@ -1,7 +1,13 @@
 // Datei: public/admin.js
 
 // ===== Admin-Login / Authentifizierung =====
-const ADMIN_PWD = "gmc666";
+// sha256 hash of the admin password 'gmc666'
+const ADMIN_HASH = '8ba27988dfaeb57cfe7f3887fb4f0f72ed15b35a8a9bdad7ae795a5c89ac7988';
+
+async function digest(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 const LOGIN_KEY = 'admin_login_valid_until';
 
 const overlay   = document.getElementById('auth-overlay');
@@ -36,8 +42,9 @@ pwdInput.addEventListener('keydown', e => {
 });
 
 // Login-Funktion
-function auth() {
-  if (pwdInput.value.trim() === ADMIN_PWD) {
+async function auth() {
+  const hash = await digest(pwdInput.value.trim());
+  if (hash === ADMIN_HASH) {
     setLoginValid();
     overlay.style.display = 'none';
     loadTasks();
