@@ -3,6 +3,7 @@
 // ===== STORAGE-Adapter =====
 const STORAGE_KEY = 'hausaufgaben_entries';
 const fileMap = {};
+let pollId = null;
 
 // Einträge aus localStorage laden
 async function loadEntries() {
@@ -232,6 +233,7 @@ function renderEntry(filename, entry, heuteStr) {
   chk.addEventListener('change', async () => {
     entry.done = chk.checked;
     await saveEntryToStorage(filename, entry);
+    showCompletionToast();
     loadTasks();
   });
   controls.append(chk);
@@ -255,6 +257,10 @@ function renderEntry(filename, entry, heuteStr) {
   li.append(header);
   if (attachmentsDiv) {
     li.append(attachmentsDiv);
+  }
+
+  if (entry.subject === 'Privat') {
+    li.classList.add('privat-task');
   }
 
   // Status-Klassen setzen (fällig heute, überfällig, erledigt)
@@ -311,6 +317,12 @@ function openPreview(name) {
   prevO.style.display = 'flex';
 }
 
+function startPolling() {
+  if (!pollId) {
+    pollId = setInterval(loadTasks, 30000);
+  }
+}
+
 document.getElementById('preview-close').addEventListener('click', () => {
   document.getElementById('preview-overlay').style.display = 'none';
 });
@@ -326,4 +338,5 @@ window.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.nav-tabs a[href="#alle"]').setAttribute('aria-current', 'page');
 
   loadTasks();
+  startPolling();
 });
