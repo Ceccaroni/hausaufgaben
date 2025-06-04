@@ -1,0 +1,73 @@
+#settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+#settings-overlay.overlay-hidden {
+  display: none !important;
+}
+
+.settings-modal {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.settings-modal h2 {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+  color: var(--text-main);
+}
+
+.settings-menu {
+  list-style: none;
+  padding: 0;
+  margin: 1em 0;
+}
+
+.settings-menu li {
+  margin-bottom: 0.75em;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.close-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.close-button:hover {
+  color: var(--nav-bg);
+}
+
+.settings-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+.settings-button:hover {
+  color: var(--highlight);
+}

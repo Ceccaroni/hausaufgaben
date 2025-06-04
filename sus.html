@@ -34,6 +34,11 @@
         <li><a href="#erledigt">Erledigt</a></li>
       </ul>
     </nav>
+    <div class="font-controls">
+      <button id="decrease-font">A–</button>
+      <button id="increase-font">A+</button>
+      <button id="contrast-toggle">🌙</button>
+    </div>
   </header>
 
   <!-- === Main-Inhalt === -->
@@ -63,6 +68,7 @@
           <option>RZG</option>
           <option>TG/XG</option>
           <option>WAH</option>
+          <option>Privat</option>
         </select>
         <input type="text" id="task-title" placeholder="Titel" required>
         <input type="date" id="task-date" required>
@@ -99,6 +105,18 @@
       <a id="preview-download" class="download-btn" href>Download</a>
     </div>
   </div>
+
+  <!-- Slider-Overlay zur Selbsteinschätzung -->
+  <div id="difficulty-overlay" style="display:none" class="difficulty-modal">
+    <label for="difficulty-slider">Wie schwierig?</label>
+    <input type="range" id="difficulty-slider" min="1" max="5" step="1">
+    <button id="difficulty-ok">OK</button>
+  </div>
+
+  <div id="toast" class="toast-hidden" aria-live="polite" role="status"></div>
+
+  <script src="public/feedback-phrases.js"></script>
+  <script src="public/toast.js"></script>
 
   <!-- Ausgelagertes JavaScript -->
   <script src="public/sus.js"></script>

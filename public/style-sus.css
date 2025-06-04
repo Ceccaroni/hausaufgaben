@@ -8,7 +8,7 @@
   padding: 0.2em;
   border-radius: 50%;
   transition: background 0.2s, color 0.2s;
-  box-sizing: border-box; display: none;
+  box-sizing: border-box;
 }
 
 .trash-button:hover {
