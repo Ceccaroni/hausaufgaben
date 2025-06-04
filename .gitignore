@@ -1,0 +1,11 @@
+# Ignore macOS metadata
+*.DS_Store
+
+# Node dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+
+# OS generated files
+Thumbs.db
