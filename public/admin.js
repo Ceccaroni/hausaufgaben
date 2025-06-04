@@ -21,6 +21,7 @@ function checkLogin() {
   if (Date.now() < validUntil) {
     overlay.style.display = 'none';
     loadTasks();
+    startPolling();
   } else {
     overlay.style.display = 'flex';
   }
@@ -48,6 +49,7 @@ async function auth() {
     setLoginValid();
     overlay.style.display = 'none';
     loadTasks();
+    startPolling();
   } else {
     errMsg.style.display = 'block';
   }
@@ -93,6 +95,7 @@ async function deleteEntryFromStorage(fn) {
 
 // ===== Datei-Handling (fileMap für Data-URIs) =====
 const fileMap = {};
+let pollId = null;
 
 // ===== DOM-Referenzen =====
 const listEl    = document.getElementById('task-list');
@@ -242,6 +245,12 @@ function openPreview(name) {
     prevDl.style.display = 'block';
   }
   prevO.style.display = 'flex';
+}
+
+function startPolling() {
+  if (!pollId) {
+    pollId = setInterval(loadTasks, 30000);
+  }
 }
 
 // ===== Einzelne Aufgabe rendern =====

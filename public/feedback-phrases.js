@@ -1,0 +1,22 @@
+window.FEEDBACK_PHRASES = [
+  "Aufgabe abgehakt ✓",
+  "Status aktualisiert → Erledigt",
+  "Eintrag in ‚Erledigt‘ verschoben",
+  "Checkbox gesetzt ✓",
+  "Als fertig markiert",
+  "Frist erfüllt ✓",
+  "Termin eingehalten!",
+  "Zeitplan aktualisiert ✓",
+  "Rechtzeitig abgeschlossen",
+  "Aufgabenzeitpunkt registriert",
+  "Aus ‚Heute‘ entfernt ✓",
+  "In Abschlussliste übertragen",
+  "Listeneintrag aktualisiert",
+  "Position im Plan abgearbeitet",
+  "Aufgabenreihenfolge bestätigt",
+  "Workflow-Schritt abgeschlossen",
+  "Standardprozedur durchlaufen ✓",
+  "Routine bestätigt ✓",
+  "Protokollierte Bearbeitung ✓",
+  "Systemstatus aktualisiert → Done"
+];

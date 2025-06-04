@@ -16,15 +16,30 @@
    1) Basis-Styles (Body, Header, etc.)
    ========================= */
 
+:root {
+  /* === Palette 1: Beruhigendes Blau === */
+  --bg-color: #F5F7FA;
+  --nav-bg: #3F7CAC;
+  --nav-active: #2A5D87;
+  --task-bg: #E4EBF2;
+  --highlight: #7FB069;
+  --text-main: #2D3E50;
+  --button-bg: #3F7CAC;
+  --icon-color: #5D8AA8;
+  --border: #BDC9D7;
+  /* === Weitere Paletten (2–6) … === */
+}
+
 /* ========================================================
    Globale Schriftfamilie: Apple-System- und vergleichbare
    ======================================================== */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #E6F5FF;
-  color: #333;
+  background: var(--bg-color);
+  color: var(--text-main);
   margin: 0;
   padding: 0;
+  transition: background 0.3s, color 0.3s;
 }
 
 /* ========================================================
@@ -375,6 +390,12 @@ main {
   border-left: 4px solid #E81123;
 }
 
+/* Privat gekennzeichnete Aufgaben */
+.privat-task {
+  background: #F7E8F7 !important;
+  border-left: 4px solid #B667B8;
+}
+
 /* ========================================================
    Vorschau-Overlay (Modal)
    ======================================================== */
@@ -430,6 +451,26 @@ main {
   font-size: 1rem;
   text-align: center;
   box-sizing: border-box;
+}
+
+/* ===== Toast-Feedback bei Abschluss einer Aufgabe ===== */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e8f4f8;
+  color: var(--text-main);
+  padding: 12px 24px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 2000;
+}
+
+.toast-hidden {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.5s;
 }
 
 
