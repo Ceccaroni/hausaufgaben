@@ -233,24 +233,28 @@ function renderEntry(filename, entry, heuteStr) {
   chk.addEventListener('change', async () => {
     entry.done = chk.checked;
     await saveEntryToStorage(filename, entry);
-    showCompletionToast();
+    if (chk.checked) {
+      showCompletionToast();
+      showDifficultyOverlay();
+    }
     loadTasks();
   });
   controls.append(chk);
 
-  // Trash-Button
-  const trashBtn = document.createElement('button');
-  trashBtn.className = 'trash-button';
-  trashBtn.innerHTML = '🗑️';
-  trashBtn.title = 'Aufgabe löschen';
-  trashBtn.addEventListener('click', async () => {
-    if (!confirm('Eintrag wirklich löschen?')) return;
-    const list = await loadEntries();
-    const filtered = list.filter(e => e.filename !== filename);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    loadTasks();
-  });
-  controls.append(trashBtn);
+  if (entry.origin === 'student') {
+    const trashBtn = document.createElement('button');
+    trashBtn.className = 'trash-button';
+    trashBtn.innerHTML = '🗑️';
+    trashBtn.title = 'Aufgabe löschen';
+    trashBtn.addEventListener('click', async () => {
+      if (!confirm('Eintrag wirklich löschen?')) return;
+      const list = await loadEntries();
+      const filtered = list.filter(e => e.filename !== filename);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      loadTasks();
+    });
+    controls.append(trashBtn);
+  }
 
   // Zusammensetzen
   header.append(meta, content, controls);
@@ -323,6 +327,39 @@ function startPolling() {
   }
 }
 
+function applyFontSize(delta) {
+  const html = document.documentElement;
+  const current = parseFloat(getComputedStyle(html).fontSize);
+  const newSize = Math.max(10, current + delta);
+  html.style.fontSize = newSize + 'px';
+  localStorage.setItem('fontSize', newSize);
+}
+
+function loadFontSize() {
+  const size = parseFloat(localStorage.getItem('fontSize'));
+  if (size) document.documentElement.style.fontSize = size + 'px';
+}
+
+function toggleDarkMode() {
+  const on = !document.body.classList.contains('dark-mode');
+  document.body.classList.toggle('dark-mode', on);
+  localStorage.setItem('darkMode', on ? '1' : '0');
+}
+
+function loadDarkMode() {
+  if (localStorage.getItem('darkMode') === '1') {
+    document.body.classList.add('dark-mode');
+  }
+}
+
+function showDifficultyOverlay() {
+  document.getElementById('difficulty-overlay').style.display = 'flex';
+}
+
+function hideDifficultyOverlay() {
+  document.getElementById('difficulty-overlay').style.display = 'none';
+}
+
 document.getElementById('preview-close').addEventListener('click', () => {
   document.getElementById('preview-overlay').style.display = 'none';
 });
@@ -333,9 +370,19 @@ window.addEventListener('DOMContentLoaded', () => {
   const prevO = document.getElementById('preview-overlay');
   prevO.style.display = 'none';
 
-  // TEACCH: Beim ersten Laden nur „Alle“ anzeigen
+  // TEACCH: Beim ersten Laden nur „Alle" anzeigen
   // Setze aria-current="page" auf den korrekten Tab
   document.querySelector('.nav-tabs a[href="#alle"]').setAttribute('aria-current', 'page');
+
+  // Font- und Kontrast-Controls
+  document.getElementById('increase-font').addEventListener('click', () => applyFontSize(2));
+  document.getElementById('decrease-font').addEventListener('click', () => applyFontSize(-2));
+  document.getElementById('contrast-toggle').addEventListener('click', toggleDarkMode);
+
+  loadFontSize();
+  loadDarkMode();
+
+  document.getElementById('difficulty-ok').addEventListener('click', hideDifficultyOverlay);
 
   loadTasks();
   startPolling();

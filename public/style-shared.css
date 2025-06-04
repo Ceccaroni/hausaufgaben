@@ -410,6 +410,32 @@ main {
   z-index: 1000;
 }
 
+/* Login-Overlay auf der Admin-Seite */
+#auth-overlay {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+#auth-overlay .auth-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+#auth-error {
+  color: red;
+  display: none;
+  margin-top: 0.5em;
+}
+
 #preview-modal {
   background: #fff;
   border-radius: 12px;
@@ -471,6 +497,46 @@ main {
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.5s;
+}
+
+/* ===== Bedienelemente für Schriftgröße und Kontrast ===== */
+.font-controls {
+  margin-top: 0.5em;
+  display: flex;
+  gap: 0.5em;
+}
+.font-controls button {
+  font-size: 1rem;
+  padding: 0.25em 0.5em;
+}
+
+.dark-mode {
+  background: #1e1e1e;
+  color: #e0e0e0;
+}
+
+.dark-mode .container {
+  background: #2b2b2b;
+}
+
+/* Slider-Overlay */
+#difficulty-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.difficulty-modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 
 

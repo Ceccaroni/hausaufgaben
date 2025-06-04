@@ -17,9 +17,15 @@
 <body class="fade-initial">
 
   <!-- Authentifizierungs-Overlay (Standard sichtbar, bis Login erfolgreich) -->
+  <div id="auth-overlay">
+    <div class="auth-modal">
+      <input type="password" id="admin-password" placeholder="Passwort">
+      <button id="auth-submit">Login</button>
+      <div id="auth-error" class="auth-error">Falsches Passwort</div>
+    </div>
+  </div>
 
-
-   <!-- === Header mit Logo und Titel === -->
+  <!-- === Header mit Logo und Titel === -->
   <header role="banner">
     <img 
       class="school-logo" 
@@ -102,7 +108,7 @@
   </div>
 
   <!-- 4. Ausgelagertes JavaScript -->
-  <script src="public/sus.js"></script>
+  <script src="public/admin.js"></script>
 
   <!-- 5. Fade-In beim Laden aktivieren -->
   <script>
