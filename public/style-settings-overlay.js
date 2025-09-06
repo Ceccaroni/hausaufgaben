@@ -3,19 +3,45 @@
   const p = location.pathname;
   const IS_SUS   = /\/sus\.html(?:$|[?#])/.test(p);
   const IS_ADMIN = /\/admin\.html(?:$|[?#])/.test(p);
+  const SCOPE = IS_ADMIN ? 'admin' : (IS_SUS ? 'sus' : null);
 
   // Overlay nur auf sus.html ODER admin.html aktivieren
-  if (!IS_SUS && !IS_ADMIN) return;
+  if (!SCOPE) return;
 
-  // ==== Audio einmalig initialisieren (auf beiden Seiten) ====
+  // ---------- Key-Helper: pro Seite eigene Keys ----------
+  const K = {
+    theme:    `ui_${SCOPE}_theme`,
+    font:     `ui_${SCOPE}_fontsize`,
+    contrast: `ui_${SCOPE}_contrast`,
+    sound:    `ui_${SCOPE}_sound_on`,
+  };
+  // Einmalige Migration/Lesefallback von alten globalen Keys
+  const Fallback = {
+    theme:    'ui_theme',
+    font:     'ui_fontsize',
+    contrast: 'ui_contrast',
+    sound:    'sound_on',
+  };
+  const lsGet = (key, fallbackKey, def) => {
+    const v = localStorage.getItem(key);
+    if (v !== null) return v;
+    const f = fallbackKey ? localStorage.getItem(fallbackKey) : null;
+    return f !== null ? f : def;
+  };
+
+  // ==== Audio einmalig initialisieren (pro Seite) ====
   (function initAudio() {
     try {
       if (!window.clickAudio) {
         const a = new Audio('./assets/sounds/tap-tiny-wooden.mp3'); // relativer Pfad
         a.preload = 'auto';
-        const soundOn = (localStorage.getItem('sound_on') !== 'false');
+        const soundOn = lsGet(K.sound, Fallback.sound, 'true') !== 'false';
         a.muted = !soundOn;
         window.clickAudio = a;
+      } else {
+        // Falls bereits vorhanden: Mute-State an Scope anpassen
+        const soundOn = lsGet(K.sound, Fallback.sound, 'true') !== 'false';
+        window.clickAudio.muted = !soundOn;
       }
     } catch (e) {}
   })();
@@ -45,10 +71,10 @@
     contrastSlider.style.setProperty('--max', contrastSlider.max);
     contrastSlider.style.setProperty('--value', contrastSlider.value);
 
-    // Theme-Auswahl sofort anwenden und speichern
+    // Theme-Auswahl sofort anwenden und speichern (namespaced)
     themeSelect.addEventListener('change', () => {
       const val = themeSelect.value;
-      localStorage.setItem('ui_theme', val);
+      localStorage.setItem(K.theme, val);
       applySettings();
     });
 
@@ -67,11 +93,11 @@
       contrastSlider.style.setProperty('--value', contrastSlider.value);
     });
 
-    // Sound-Toggle sofort anwenden (nicht nur beim Schliessen)
+    // Sound-Toggle sofort anwenden (namespaced)
     const soundToggle = document.getElementById('toggle-sound');
     if (soundToggle) {
       soundToggle.addEventListener('change', () => {
-        localStorage.setItem('sound_on', soundToggle.checked.toString());
+        localStorage.setItem(K.sound, soundToggle.checked.toString());
         applySettings();
       });
     }
@@ -84,7 +110,7 @@
 
     // Klick auf Schliessen-Button speichert Werte und blendet Overlay aus
     closeBtn.addEventListener('click', () => {
-      if (localStorage.getItem('sound_on') !== 'false' && window.clickAudio) {
+      if (lsGet(K.sound, Fallback.sound, 'true') !== 'false' && window.clickAudio) {
         window.clickAudio.currentTime = 0;
         window.clickAudio.play();
       }
@@ -95,7 +121,7 @@
     // Klick in den ausgeblurrten Bereich schliesst ebenfalls das Overlay
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
-        if (localStorage.getItem('sound_on') !== 'false' && window.clickAudio) {
+        if (lsGet(K.sound, Fallback.sound, 'true') !== 'false' && window.clickAudio) {
           window.clickAudio.currentTime = 0;
           window.clickAudio.play();
         }
@@ -105,7 +131,7 @@
     });
   });
 
-  // ==== Einstellungen laden ====
+  // ==== Einstellungen laden (namespaced, mit Fallback) ====
   function loadSettings() {
     const soundToggle     = document.getElementById('toggle-sound');
     const themeSelect     = document.getElementById('select-theme');
@@ -114,16 +140,16 @@
     const contrastSlider  = document.getElementById('contrast-slider');
     const contrastValue   = document.getElementById('contrast-value');
 
-    // Ton-Status (Standard: ein)
-    const soundOn = localStorage.getItem('sound_on');
+    // Ton-Status
+    const soundOn = lsGet(K.sound, Fallback.sound, 'true');
     if (soundToggle) soundToggle.checked = (soundOn !== 'false');
 
-    // Theme (Standard: standard)
-    const theme = localStorage.getItem('ui_theme') || 'standard';
+    // Theme
+    const theme = lsGet(K.theme, Fallback.theme, 'standard') || 'standard';
     if (themeSelect) themeSelect.value = theme;
 
-    // Schriftgrösse (Standard: 12)
-    const savedFont = localStorage.getItem('ui_fontsize') || '12';
+    // Schriftgrösse
+    const savedFont = lsGet(K.font, Fallback.font, '12') || '12';
     if (fontSlider) {
       fontSlider.value = savedFont;
       if (fontValue) fontValue.textContent = savedFont;
@@ -132,8 +158,8 @@
       fontSlider.style.setProperty('--value', savedFont);
     }
 
-    // Kontrast (Standard: 100)
-    const savedContrast = localStorage.getItem('ui_contrast') || '100';
+    // Kontrast
+    const savedContrast = lsGet(K.contrast, Fallback.contrast, '100') || '100';
     if (contrastSlider) {
       contrastSlider.value = savedContrast;
       if (contrastValue) contrastValue.textContent = savedContrast;
@@ -142,26 +168,26 @@
     }
   }
 
-  // ==== Einstellungen speichern ====
+  // ==== Einstellungen speichern (namespaced) ====
   function saveSettings() {
     const soundToggle    = document.getElementById('toggle-sound');
     const themeSelect    = document.getElementById('select-theme');
     const fontSlider     = document.getElementById('fontsize-slider');
     const contrastSlider = document.getElementById('contrast-slider');
 
-    if (soundToggle)   localStorage.setItem('sound_on', soundToggle.checked.toString());
-    if (themeSelect)   localStorage.setItem('ui_theme', themeSelect.value);
-    if (fontSlider)    localStorage.setItem('ui_fontsize', fontSlider.value);
-    if (contrastSlider)localStorage.setItem('ui_contrast', contrastSlider.value);
+    if (soundToggle)   localStorage.setItem(K.sound, soundToggle.checked.toString());
+    if (themeSelect)   localStorage.setItem(K.theme, themeSelect.value);
+    if (fontSlider)    localStorage.setItem(K.font, fontSlider.value);
+    if (contrastSlider)localStorage.setItem(K.contrast, contrastSlider.value);
 
     applySettings();
   }
 
-  // ==== Einstellungen anwenden ====
+  // ==== Einstellungen anwenden (nur auf aktueller Seite) ====
   function applySettings() {
-    const theme = localStorage.getItem('ui_theme') || 'standard';
+    const theme = lsGet(K.theme, Fallback.theme, 'standard') || 'standard';
 
-    // a) Theme sowohl als data-Attribut wie auch als Klasse setzen
+    // a) Theme als data-Attribut und Klasse
     document.documentElement.dataset.theme = theme;
     document.documentElement.classList.remove(
       'theme-standard',
@@ -174,18 +200,18 @@
     document.documentElement.classList.add(`theme-${theme}`);
 
     // b) Ton an/aus
-    const soundOn = (localStorage.getItem('sound_on') !== 'false');
+    const soundOn = lsGet(K.sound, Fallback.sound, 'true') !== 'false';
     if (window.clickAudio) window.clickAudio.muted = !soundOn;
 
-    // c) Schriftgrösse: Root-Variable und direkte font-size setzen
-    const fs = localStorage.getItem('ui_fontsize') || '12';
+    // c) Schriftgrösse
+    const fs = lsGet(K.font, Fallback.font, '12') || '12';
     document.documentElement.style.setProperty('--base-font', fs + 'px');
     document.documentElement.style.fontSize = fs + 'px';
     const sliderFont = document.getElementById('fontsize-slider');
     if (sliderFont) sliderFont.style.setProperty('--value', fs);
 
     // d) Kontrast
-    const contrast = localStorage.getItem('ui_contrast') || '100';
+    const contrast = lsGet(K.contrast, Fallback.contrast, '100') || '100';
     document.body.style.filter = `contrast(${contrast}%)`;
     const sliderContrast = document.getElementById('contrast-slider');
     if (sliderContrast) sliderContrast.style.setProperty('--value', contrast);
