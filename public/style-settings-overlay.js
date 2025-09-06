@@ -52,17 +52,29 @@
       applySettings();
     });
 
-    // Slider-Events: Werte direkt anzeigen, anwenden und CSS-Variable setzen
+    // Schriftgrösse live anwenden
     fontSlider.addEventListener('input', () => {
       fontValue.textContent = fontSlider.value;
       document.documentElement.style.fontSize = fontSlider.value + 'px';
+      document.documentElement.style.setProperty('--base-font', fontSlider.value + 'px');
       fontSlider.style.setProperty('--value', fontSlider.value);
     });
+
+    // Kontrast live anwenden
     contrastSlider.addEventListener('input', () => {
       contrastValue.textContent = contrastSlider.value;
       document.body.style.filter = `contrast(${contrastSlider.value}%)`;
       contrastSlider.style.setProperty('--value', contrastSlider.value);
     });
+
+    // Sound-Toggle sofort anwenden (nicht nur beim Schliessen)
+    const soundToggle = document.getElementById('toggle-sound');
+    if (soundToggle) {
+      soundToggle.addEventListener('change', () => {
+        localStorage.setItem('sound_on', soundToggle.checked.toString());
+        applySettings();
+      });
+    }
 
     // Klick auf Zahnrad öffnet Overlay und lädt Werte
     settingsBtn.addEventListener('click', () => {
@@ -116,6 +128,7 @@
       fontSlider.value = savedFont;
       if (fontValue) fontValue.textContent = savedFont;
       document.documentElement.style.fontSize = savedFont + 'px';
+      document.documentElement.style.setProperty('--base-font', savedFont + 'px');
       fontSlider.style.setProperty('--value', savedFont);
     }
 
@@ -147,6 +160,9 @@
   // ==== Einstellungen anwenden ====
   function applySettings() {
     const theme = localStorage.getItem('ui_theme') || 'standard';
+
+    // a) Theme sowohl als data-Attribut wie auch als Klasse setzen
+    document.documentElement.dataset.theme = theme;
     document.documentElement.classList.remove(
       'theme-standard',
       'theme-beruhigendes-blau',
@@ -157,17 +173,18 @@
     );
     document.documentElement.classList.add(`theme-${theme}`);
 
-    // Ton an/aus
+    // b) Ton an/aus
     const soundOn = (localStorage.getItem('sound_on') !== 'false');
     if (window.clickAudio) window.clickAudio.muted = !soundOn;
 
-    // Schriftgrösse
+    // c) Schriftgrösse: Root-Variable und direkte font-size setzen
     const fs = localStorage.getItem('ui_fontsize') || '12';
+    document.documentElement.style.setProperty('--base-font', fs + 'px');
     document.documentElement.style.fontSize = fs + 'px';
     const sliderFont = document.getElementById('fontsize-slider');
     if (sliderFont) sliderFont.style.setProperty('--value', fs);
 
-    // Kontrast
+    // d) Kontrast
     const contrast = localStorage.getItem('ui_contrast') || '100';
     document.body.style.filter = `contrast(${contrast}%)`;
     const sliderContrast = document.getElementById('contrast-slider');
