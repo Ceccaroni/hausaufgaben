@@ -1,6 +1,12 @@
 console.log('sus.js geladen');
 // Datei: public/sus.js
 
+// Nur auf der SuS-Seite laufen lassen:
+if (!/\/sus\.html(?:$|[\?#])/i.test(location.pathname)) {
+  console.log('sus.js: nicht auf sus.html → Abbruch');
+  throw new Error('STOP_SUS_JS_ON_NON_SUS_PAGE');
+}
+
 // ===== STORAGE-Adapter =====
 const STORAGE_KEY = 'hausaufgaben_entries';
 const fileMap = {};
