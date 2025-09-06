@@ -19,84 +19,6 @@
   <!-- Dies ist der CSS-Link für das Admin-Styling
        Wird aktuell nicht gebraucht, da alles in style-shared.css -->
 </head>
-<script>
-/* ADMIN: Overlay initialisieren + Sound bereitstellen (klein & robust) */
-(function () {
-  if (window.PAGE !== 'admin') return;
-
-  // --- Sound (auch auf Admin) ---
-  try {
-    if (!window._tap) {
-      const a = new Audio('./assets/sounds/tap-tiny-wooden.mp3'); // Pfad exakt
-      a.load();
-      window._tap = a;
-    }
-  } catch (e) {}
-
-  // --- Overlay öffnen/schliessen ---
-  const btn     = document.getElementById('settings-btn');
-  const overlay = document.getElementById('settings-overlay');
-  const close   = document.getElementById('settings-close');
-
-  if (!btn || !overlay) return;
-
-  const open  = () => {
-    overlay.classList.remove('hidden');
-    overlay.style.display = 'block';                  // falls CSS .hidden = display:none
-    document.documentElement.classList.add('settings-open');
-  };
-  const hide  = () => {
-    overlay.classList.add('hidden');
-    overlay.style.display = '';
-    document.documentElement.classList.remove('settings-open');
-  };
-
-  btn.addEventListener('click', (ev) => { ev.preventDefault(); open(); }, true);
-  close?.addEventListener('click', (ev) => { ev.preventDefault(); hide(); }, true);
-  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) hide(); }, true);
-
-  // --- Schieberegler & Auswahl synchronisieren (lokal, ohne Fremdcode) ---
-  const LS = 'settings';
-  const st = (() => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } })();
-
-  const elSound   = document.getElementById('toggle-sound');
-  const elTheme   = document.getElementById('select-theme');
-  const fsSlider  = document.getElementById('fontsize-slider');
-  const fsValue   = document.getElementById('fontsize-value');
-  const cSlider   = document.getElementById('contrast-slider');
-  const cValue    = document.getElementById('contrast-value');
-
-  if (elSound) {
-    elSound.checked = !!st.sound;
-    elSound.addEventListener('change', () => { st.sound = elSound.checked; localStorage.setItem(LS, JSON.stringify(st)); });
-  }
-
-  const applyTheme = (v) => { document.documentElement.dataset.theme = v || 'standard'; };
-  if (elTheme) {
-    elTheme.value = st.theme || 'standard';
-    applyTheme(elTheme.value);
-    elTheme.addEventListener('change', () => { st.theme = elTheme.value; localStorage.setItem(LS, JSON.stringify(st)); applyTheme(elTheme.value); });
-  }
-
-  const setFont = (px) => document.documentElement.style.setProperty('--base-font', px + 'px');
-  if (fsSlider && fsValue) {
-    fsSlider.value = String(st.fontsize ?? 12);
-    fsValue.textContent = fsSlider.value;
-    setFont(Number(fsSlider.value));
-    fsSlider.addEventListener('input', () => { fsValue.textContent = fsSlider.value; setFont(Number(fsSlider.value)); });
-    fsSlider.addEventListener('change', () => { st.fontsize = Number(fsSlider.value); localStorage.setItem(LS, JSON.stringify(st)); });
-  }
-
-  const setContrast = (pct) => document.documentElement.style.setProperty('--contrast', pct + '%');
-  if (cSlider && cValue) {
-    cSlider.value = String(st.contrast ?? 100);
-    cValue.textContent = cSlider.value;
-    setContrast(Number(cSlider.value));
-    cSlider.addEventListener('input', () => { cValue.textContent = cSlider.value; setContrast(Number(cSlider.value)); });
-    cSlider.addEventListener('change', () => { st.contrast = Number(cSlider.value); localStorage.setItem(LS, JSON.stringify(st)); });
-  }
-})();
-</script>
 
 <body class="fade-initial">
 
@@ -262,5 +184,82 @@
         .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
     }
   </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.PAGE !== 'admin') return;
+
+  // --- Sound (auch auf Admin) ---
+  try {
+    if (!window._tap) {
+      const a = new Audio('./assets/sounds/tap-tiny-wooden.mp3');
+      a.load();
+      window._tap = a;
+    }
+  } catch (e) {}
+
+  // --- Overlay öffnen/schliessen ---
+  const btn     = document.getElementById('settings-btn');
+  const overlay = document.getElementById('settings-overlay');
+  const close   = document.getElementById('settings-close');
+  if (!btn || !overlay) return;
+
+  const open = () => {
+    overlay.classList.remove('hidden');
+    overlay.style.display = 'block';
+    document.documentElement.classList.add('settings-open');
+  };
+  const hide = () => {
+    overlay.classList.add('hidden');
+    overlay.style.display = '';
+    document.documentElement.classList.remove('settings-open');
+  };
+
+  btn.addEventListener('click', (ev) => { ev.preventDefault(); open(); }, true);
+  close?.addEventListener('click', (ev) => { ev.preventDefault(); hide(); }, true);
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) hide(); }, true);
+
+  // --- Slider & Auswahl → localStorage (wie gehabt) ---
+  const LS = 'settings';
+  const st = (() => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } })();
+
+  const elSound  = document.getElementById('toggle-sound');
+  const elTheme  = document.getElementById('select-theme');
+  const fsSlider = document.getElementById('fontsize-slider');
+  const fsValue  = document.getElementById('fontsize-value');
+  const cSlider  = document.getElementById('contrast-slider');
+  const cValue   = document.getElementById('contrast-value');
+
+  if (elSound) {
+    elSound.checked = !!st.sound;
+    elSound.addEventListener('change', () => { st.sound = elSound.checked; localStorage.setItem(LS, JSON.stringify(st)); });
+  }
+
+  const applyTheme = (v) => { document.documentElement.dataset.theme = v || 'standard'; };
+  if (elTheme) {
+    elTheme.value = st.theme || 'standard';
+    applyTheme(elTheme.value);
+    elTheme.addEventListener('change', () => { st.theme = elTheme.value; localStorage.setItem(LS, JSON.stringify(st)); applyTheme(elTheme.value); });
+  }
+
+  const setFont = (px) => document.documentElement.style.setProperty('--base-font', px + 'px');
+  if (fsSlider && fsValue) {
+    fsSlider.value = String(st.fontsize ?? 12);
+    fsValue.textContent = fsSlider.value;
+    setFont(Number(fsSlider.value));
+    fsSlider.addEventListener('input', () => { fsValue.textContent = fsSlider.value; setFont(Number(fsSlider.value)); });
+    fsSlider.addEventListener('change', () => { st.fontsize = Number(fsSlider.value); localStorage.setItem(LS, JSON.stringify(st)); });
+  }
+
+  const setContrast = (pct) => document.documentElement.style.setProperty('--contrast', pct + '%');
+  if (cSlider && cValue) {
+    cSlider.value = String(st.contrast ?? 100);
+    cValue.textContent = cSlider.value;
+    setContrast(Number(cSlider.value));
+    cSlider.addEventListener('input', () => { cValue.textContent = cSlider.value; setContrast(Number(cSlider.value)); });
+    cSlider.addEventListener('change', () => { st.contrast = Number(cSlider.value); localStorage.setItem(LS, JSON.stringify(st)); });
+  }
+});
+</script>
+  
 </body>
 </html>
