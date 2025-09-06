@@ -9,7 +9,7 @@ const assets = [
   // App-Icons und Sounds
   'assets/logo-huttwil.svg',
   'assets/gear.svg',
-  'assets/tap-tiny-wooden.mp3',
+  'assets/sounds/tap-tiny-wooden.mp3',
 
   // Styles
   'public/fade.css',
