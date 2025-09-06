@@ -2,9 +2,10 @@ console.log('sus.js geladen');
 // Datei: public/sus.js
 
 // Nur auf der SuS-Seite laufen lassen – erste Zeile der Datei
-if (!/\/sus\.html(?:$|[\?#])/i.test(location.pathname)) {
-  throw new Error('STOP_SUS_JS_ON_NON_SUS_PAGE');
-}
+(function () {
+  if (!/\/sus\.html(?:$|[?#])/.test(location.pathname)) return;
+  // ... hier bleibt dein bisheriger Code unverändert ...
+})();
 
 console.log('sus.js geladen'); // kommt erst auf sus.html
 // ===== STORAGE-Adapter =====
