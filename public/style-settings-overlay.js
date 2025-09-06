@@ -1,5 +1,9 @@
 // Datei: public/style-settings-overlay.js
 
+if (!/\/sus\.html(?:$|[\?#])/i.test(location.pathname)) {
+  throw new Error('STOP_OVERLAY_ON_NON_SUS');
+}
+
 // ==== Audio initialisieren und global verfügbar machen =====
 window.clickAudio = new Audio('assets/sounds/tap-tiny-wooden.mp3');
 window.clickAudio.preload = 'auto';
@@ -157,6 +161,7 @@ function applySettings() {
 
 // Direkt nach Laden der Seite die Einstellungen anwenden
 applySettings();
+
 
 
 
