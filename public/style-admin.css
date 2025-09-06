@@ -1,6 +1,8 @@
 /* =========================
-   1) Bearbeiten-Button (.edit-button)
+   Admin-spezifische Styles
    ========================= */
+
+/* 1) Bearbeiten-Button (.edit-button) */
 .edit-button {
   background: transparent;
   border: none;
@@ -19,4 +21,25 @@
 .edit-button:hover {
   background: rgba(0, 120, 212, 0.1);
   color: #005BB5;
+}
+
+/* 2) Trash-Button (auf Admin sichtbar) */
+.trash-button {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: #888;
+  cursor: pointer;
+  padding: 0.2em;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trash-button:hover {
+  background: rgba(0,0,0,0.05);
+  color: #333;
 }
