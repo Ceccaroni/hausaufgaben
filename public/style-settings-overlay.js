@@ -1,7 +1,7 @@
 // Datei: public/style-settings-overlay.js
 
 // ==== Audio initialisieren und global verfügbar machen =====
-window.clickAudio = new Audio('assets/tap-tiny-wooden.mp3');
+window.clickAudio = new Audio('assets/sounds/tap-tiny-wooden.mp3');
 window.clickAudio.preload = 'auto';
 window.clickAudio.muted = true; // Standard zunächst stumm
 
@@ -157,3 +157,4 @@ function applySettings() {
 
 // Direkt nach Laden der Seite die Einstellungen anwenden
 applySettings();
+
