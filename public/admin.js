@@ -33,13 +33,18 @@ function setLoginValid() {
 }
 
 // Event-Listener für Button und Enter-Taste im Passwortfeld
-authBtn.addEventListener('click', auth);
-pwdInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    auth();
-  }
-});
+if (authBtn) {
+  authBtn.addEventListener('click', auth);
+}
+if (pwdInput) {
+  pwdInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      auth();
+    }
+  });
+}
+
 
 // Login-Funktion
 async function auth() {
@@ -203,9 +208,14 @@ const prevO  = document.getElementById('preview-overlay');
 const prevC  = document.getElementById('preview-content');
 const prevDl = document.getElementById('preview-download');
 
-document.getElementById('preview-close').addEventListener('click', () => {
-  prevO.style.display = 'none';
-});
+const previewCloseBtn = document.getElementById('preview-close');
+if (previewCloseBtn && prevO) {
+  previewCloseBtn.addEventListener('click', () => {
+    prevO.style.display = 'none';
+  });
+}
+
+
 
 function openPreview(name) {
   if (!fileMap[name]) {
@@ -300,7 +310,7 @@ function renderEntry(filename, entry) {
     });
   }
 
-  // Controls: Checkbox + Edit + Löschen
+  // Controls: Checkbox + Edit-Button + Löschen-Button
   const controls = document.createElement('div');
   controls.className = 'controls';
 
@@ -310,6 +320,11 @@ function renderEntry(filename, entry) {
   chk.className = 'checkbox';
   chk.checked = entry.done;
   chk.addEventListener('change', async () => {
+    // === Hier Sound abspielen (wenn Ton eingeschaltet) ===
+    if (localStorage.getItem('sound_on') !== 'false' && window.clickAudio) {
+      window.clickAudio.currentTime = 0;
+      window.clickAudio.play();
+    }
     entry.done = chk.checked;
     await saveEntryToStorage(filename, entry);
     loadTasks();
@@ -328,10 +343,14 @@ function renderEntry(filename, entry) {
       descI.value = entry.description || '';
       dateI.value = entry.date;
       attachI.value = '';
+
+      // Formular ins Blickfeld scrollen und Fokus setzen
+      form.scrollIntoView({ behavior: 'smooth' });
+      titleI.focus();
     });
     controls.append(editBtn);
 
-    // Delete-Button
+    // Löschen-Button
     const delBtn = document.createElement('button');
     delBtn.className = 'trash-button';
     delBtn.textContent = '🗑️';
@@ -348,6 +367,15 @@ function renderEntry(filename, entry) {
 
 // ===== Initialisierung =====
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('preview-overlay').style.display = 'none';
-  checkLogin();
+  // Preview-Overlay initial verstecken
+  const prev = document.getElementById('preview-overlay');
+  if (prev) prev.style.display = 'none';
+
+  // Falls Auth-Overlay vorhanden, Login prüfen – sonst sofort Aufgaben laden
+  const authOverlay = document.getElementById('auth-overlay');
+  if (authOverlay) {
+    checkLogin();
+  } else {
+    loadTasks();
+  }
 });

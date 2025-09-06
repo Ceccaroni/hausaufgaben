@@ -1,4 +1,5 @@
-// public/sus.js
+console.log('sus.js geladen');
+// Datei: public/sus.js
 
 // ===== STORAGE-Adapter =====
 const STORAGE_KEY = 'hausaufgaben_entries';
@@ -164,7 +165,7 @@ async function loadTasks() {
 
 // ===== Einzelne Aufgabe rendern und in entsprechende Liste einfügen =====
 function renderEntry(filename, entry, heuteStr) {
-  // Card-Element
+  // Card-Element erstellen
   const li = document.createElement('li');
   li.className = 'task';
 
@@ -179,7 +180,7 @@ function renderEntry(filename, entry, heuteStr) {
   dateEl.className = 'date';
   const [y, m, d] = entry.date.split('-');
   const monate = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-  dateEl.textContent = parseInt(d,10) + '. ' + monate[parseInt(m,10)-1] + ' ' + y;
+  dateEl.textContent = parseInt(d, 10) + '. ' + monate[parseInt(m, 10) - 1] + ' ' + y;
   const subjEl = document.createElement('span');
   subjEl.className = 'subject';
   subjEl.textContent = entry.subject;
@@ -207,20 +208,23 @@ function renderEntry(filename, entry, heuteStr) {
     entry.attachments.forEach(name => {
       const span = document.createElement('div');
       span.className = 'attachment';
-      const iconEl = document.createElement('span');
-      iconEl.className = 'icon';
-      const ext = name.split('.').pop().toLowerCase();
-      iconEl.textContent = ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : '📄';
+           const ext = name.split('.').pop().toLowerCase();
+      const img = document.createElement('img');
+      img.className = 'attachment-icon';
+      img.src = ['jpg','jpeg','png','gif'].includes(ext)
+        ? 'assets/icon-attachment.svg'
+        : 'assets/icon-file.svg';
       const txt = document.createElement('span');
       txt.textContent = name;
       txt.title = name;
-      span.append(iconEl, txt);
+      span.append(img, txt);
+
       span.addEventListener('click', () => openPreview(name));
       attachmentsDiv.append(span);
     });
   }
 
-  // CONTROLS: Checkbox + Trash-Button
+  // CONTROLS: Checkbox + Trash-Button + Edit-Button (origin === 'student')
   const controls = document.createElement('div');
   controls.className = 'controls';
 
@@ -230,6 +234,15 @@ function renderEntry(filename, entry, heuteStr) {
   chk.className = 'checkbox';
   chk.checked = entry.done;
   chk.addEventListener('change', async () => {
+
+  // === Klick‐Sound beim Abhaken ===
+  if (localStorage.getItem('sound_on') !== 'false' && window.clickAudio) {
+
+    window.clickAudio.currentTime = 0;
+    window.clickAudio.play();
+
+  }
+
     entry.done = chk.checked;
     await saveEntryToStorage(filename, entry);
     loadTasks();
@@ -250,7 +263,26 @@ function renderEntry(filename, entry, heuteStr) {
   });
   controls.append(trashBtn);
 
-  // Zusammensetzen
+  // Edit-Button (nur, wenn origin === 'student')
+  if (entry.origin === 'student') {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-button';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', () => {
+      editKey = filename;
+      subjI.value = entry.subject;
+      titleI.value = entry.title;
+      descI.value = entry.description || '';
+      dateI.value = entry.date;
+      attachI.value = '';
+
+      // Formular ins Blickfeld scrollen und Fokus setzen
+      form.scrollIntoView({ behavior: 'smooth' });
+      titleI.focus();
+    });
+    controls.append(editBtn);
+  }
+
   header.append(meta, content, controls);
   li.append(header);
   if (attachmentsDiv) {
@@ -308,7 +340,8 @@ function openPreview(name) {
     prevDl.style.display = 'block';
   }
 
-  prevO.style.display = 'flex';
+  const prevOverlay = document.getElementById('preview-overlay');
+  prevOverlay.style.display = 'flex';
 }
 
 document.getElementById('preview-close').addEventListener('click', () => {
@@ -322,7 +355,6 @@ window.addEventListener('DOMContentLoaded', () => {
   prevO.style.display = 'none';
 
   // TEACCH: Beim ersten Laden nur „Alle“ anzeigen
-  // Setze aria-current="page" auf den korrekten Tab
   document.querySelector('.nav-tabs a[href="#alle"]').setAttribute('aria-current', 'page');
 
   loadTasks();

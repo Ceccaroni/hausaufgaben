@@ -1,0 +1,121 @@
+/* Datei: public/style-settings.css */
+
+/* =========================
+   0) Helferklasse: Ausblenden
+   ========================= */
+.hidden {
+  display: none !important;
+}
+
+/* =========================
+   1) Overlay-Hintergrund
+   ========================= */
+#settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5); /* halbtransparentes Schwarz */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* =========================
+   2) Modal-Container
+   ========================= */
+#settings-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  padding: 1.5em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+/* =========================
+   3) Schliessen-Button im Modal
+   ========================= */
+#settings-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  color: #333333;
+}
+
+#settings-close:hover {
+  color: #000000;
+}
+
+/* =========================
+   4) Überschrift im Modal
+   ========================= */
+#settings-modal h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1em 0;
+  color: #000000;
+  text-align: center;
+}
+
+/* =========================
+   5) Setting-Item (jedes Einstellungs-Feld)
+   ========================= */
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25em;
+}
+
+.setting-item label {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5em;
+  color: #333333;
+}
+
+.setting-item input[type="checkbox"],
+.setting-item select {
+  width: 100%;
+  padding: 0.5em;
+  font-size: 1rem;
+  border: 1px solid #A0AEC0;
+  border-radius: 6px;
+  background: #F8FBFF;
+  color: #333333;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.setting-item input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5em;
+  transform: scale(1.5);
+}
+
+/* =========================
+   6) Responsive Anpassungen
+   ========================= */
+@media (max-width: 600px) {
+  #settings-modal {
+    width: 95%;
+    padding: 1em;
+  }
+
+  #settings-modal h2 {
+    font-size: 1.125rem;
+  }
+
+  .setting-item label {
+    font-size: 0.95rem;
+  }
+
+  .setting-item input[type="checkbox"],
+  .setting-item select {
+    font-size: 0.95rem;
+  }
+}

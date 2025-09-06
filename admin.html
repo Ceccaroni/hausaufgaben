@@ -2,18 +2,22 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lehrer-Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 
   <!-- 1. Fade-CSS extern einbinden -->
   <link rel="stylesheet" href="public/fade.css">
 
   <!-- 2. Verlinkung des ausgelagerten CSS -->
   <link rel="stylesheet" href="public/style-shared.css">
+  <link rel="stylesheet" href="public/style-settings.css">
+  <link rel="stylesheet" href="public/style-sus.css">
   <!-- <link rel="stylesheet" href="/public/style-admin.css"> -->
   <!-- Dies ist der CSS-Link für das Admin-Styling
        Wird aktuell nicht gebraucht, da alles in style-shared.css -->
 </head>
+
 <body class="fade-initial">
 
   <!-- Authentifizierungs-Overlay (Standard sichtbar, bis Login erfolgreich) -->
@@ -33,9 +37,66 @@
         <li><a href="#heute" aria-current="page">Heute</a></li>
         <li><a href="#alle">Alle Aufgaben</a></li>
         <li><a href="#erledigt">Erledigt</a></li>
+        <li>
+          <button id="settings-btn" aria-label="Einstellungen öffnen" class="tab-settings-btn">
+            <img src="assets/gear.svg" alt="Einstellungen">
+          </button>
+        </li>
       </ul>
     </nav>
   </header>
+
+<!-- Settings-Overlay -->
+  <div id="settings-overlay" class="hidden">
+    <div id="settings-modal">
+      <button id="settings-close" aria-label="Einstellungen schliessen">×</button>
+      <h2>Einstellungen</h2>
+      <div class="setting-item">
+        <label for="toggle-sound">Ton ein/aus</label>
+        <input type="checkbox" id="toggle-sound">
+      </div>
+      <div class="setting-item">
+        <label for="select-theme">Farbmodus</label>
+        <select id="select-theme">
+          <option value="standard">Standard</option>
+          <option value="beruhigendes-blau">Beruhigendes Blau</option>
+          <option value="erdtoene">Erdtöne</option>
+          <option value="gedaempftes-pastell">Gedämpftes Pastell</option>
+          <option value="naturinspiriert">Naturinspiriert</option>
+          <option value="lavendel-neutral">Lavendel & Neutral</option>
+        </select>
+      </div>
+      <!-- Schriftgrösse Slider -->
+      <div class="setting-item">
+        <label for="fontsize-slider">
+          Schriftgrösse: <span id="fontsize-value">12</span> px
+        </label>
+        <input
+          type="range"
+          id="fontsize-slider"
+          min="12"
+          max="24"
+          step="1"
+          value="12"
+        />
+      </div>
+      <!-- Kontrast Slider -->
+      <div class="setting-item">
+        <label for="contrast-slider">
+          Kontrast: <span id="contrast-value">100</span> %
+        </label>
+        <input
+          type="range"
+          id="contrast-slider"
+          min="50"
+          max="150"
+          step="5"
+          value="100"
+        />
+      </div>
+    </div>
+  </div>
+
 
   <!-- === Main-Inhalt === -->
   <main role="main">
@@ -68,11 +129,11 @@
         <input type="text" id="task-title" placeholder="Titel" required>
         <input type="date" id="task-date" required>
         <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
-        <label class="file-label">
-          <span class="icon">📎</span>
-          <span id="file-names">Datei/Foto auswählen</span>
-          <input type="file" id="task-attachments" multiple>
-        </label>
+<label class="file-label">
+  <img class="attachment-icon" src="assets/icon-attachment.svg" alt="Datei auswählen">
+  <span id="file-names">Datei/Foto auswählen</span>
+  <input type="file" id="task-attachments" multiple>
+</label>
         <button type="submit">Hinzufügen</button>
       </form>
     </div>
@@ -103,6 +164,7 @@
 
   <!-- 4. Ausgelagertes JavaScript -->
   <script src="public/sus.js"></script>
+  <script src="public/style-settings-overlay.js"></script>
 
   <!-- 5. Fade-In beim Laden aktivieren -->
   <script>

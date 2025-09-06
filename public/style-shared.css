@@ -462,3 +462,509 @@ main {
     margin-top: 0.5em;
   }
 }
+
+/* =========================
+   Dark Mode Styles
+   ========================= */
+
+/* Grundsätzliches: Wenn <html> die Klasse .dark-mode hat, wird invertiert */
+.dark-mode body {
+  background: #1c1c1e;
+  color: #e5e5e7;
+}
+
+/* Header- und Navigationsfarben invertieren */
+.dark-mode .header {
+  background: #2c2c2e;
+  color: #f2f2f5;
+}
+
+.dark-mode .nav-tabs {
+  background-color: #2c2c2e;
+  border-bottom-color: #444;
+}
+
+.dark-mode .nav-tabs a {
+  color: #f2f2f5 !important;
+}
+
+/* Container-Hintergrund dunkel */
+.dark-mode .container {
+  background: #2c2c2e;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Formularfelder im Dark Mode */
+.dark-mode .task-form select,
+.dark-mode .task-form input[type="text"],
+.dark-mode .task-form input[type="date"],
+.dark-mode .task-form textarea,
+.dark-mode .setting-item input[type="checkbox"],
+.dark-mode .setting-item select {
+  background: #3a3a3c;
+  color: #e5e5e7;
+  border: 1px solid #5a5a5c;
+}
+
+/* Task-Karten im Dark Mode */
+.dark-mode .task {
+  background: #2c2c2e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .task:nth-child(even) {
+  background: #252528;
+}
+
+/* Metadaten und Links anpassen */
+.dark-mode .meta,
+.dark-mode .content .description {
+  color: #c7c7cc;
+}
+
+/* Vorschau-Overlay im Dark Mode */
+.dark-mode #preview-modal {
+  background: #2c2c2e;
+  color: #e5e5e7;
+}
+
+/* Download-Button im Dark Mode */
+.dark-mode .download-btn {
+  background: #505054;
+  color: #f2f2f5;
+}
+
+/* Schliessen-Button im Modal (heller machen) */
+.dark-mode #preview-close,
+.dark-mode #settings-close {
+  color: #f2f2f5;
+}
+
+/* Checkbox und Select im Dark Mode */
+.dark-mode .setting-item input[type="checkbox"]:checked + label {
+  color: #e5e5e7;
+}
+
+/* Scrollbar in Dark Mode (optional) */
+.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+}
+.dark-mode ::-webkit-scrollbar-thumb {
+  background-color: #5a5a5c;
+  border-radius: 4px;
+}
+
+/* =========================
+   11) „Standard“-Schema
+   ========================= */
+.theme-standard body {
+  background: #E6F5FF;
+  color: #333333;
+}
+.theme-standard .header {
+  background: #0078D4;
+  color: #FFFFFF;
+}
+.theme-standard .nav-tabs {
+  background-color: #0078D4;
+  border-bottom: 3px solid #005BB5;
+}
+.theme-standard .nav-tabs a {
+  color: #FFFFFF !important;
+}
+.theme-standard .container {
+  background: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.theme-standard .task-form select,
+.theme-standard .task-form input[type="text"],
+.theme-standard .task-form input[type="date"],
+.theme-standard .task-form textarea,
+.theme-standard .setting-item input[type="checkbox"],
+.theme-standard .setting-item select {
+  background: #F8FBFF;
+  color: #333333;
+  border: 1px solid #CBD4E1;
+}
+.theme-standard .task {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.theme-standard .task:nth-child(even) {
+  background: #F9FBFD;
+}
+.theme-standard .meta,
+.theme-standard .content .description {
+  color: #333333;
+}
+.theme-standard #preview-modal {
+  background: #FFFFFF;
+  color: #333333;
+}
+.theme-standard .download-btn {
+  background: #0078D4;
+  color: #FFFFFF;
+}
+.theme-standard #preview-close,
+.theme-standard #settings-close {
+  color: #555555;
+}
+.theme-standard ::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-standard ::-webkit-scrollbar-thumb {
+  background-color: #CBD4E1;
+  border-radius: 4px;
+}
+
+
+/* =========================
+   11.1 Palette 1: Beruhigendes Blau
+   ========================= */
+.theme-beruhigendes-blau body {
+  background: #F5F7FA;        /* Sehr helles Blaugrau */
+  color: #2D3E50;             /* Dunkles Blaugrau */
+}
+.theme-beruhigendes-blau .header {
+  background: #3F7CAC;        /* Gedämpftes Mittelblau */
+  color: #F5F7FA;
+}
+.theme-beruhigendes-blau .nav-tabs {
+  background-color: #3F7CAC;
+  border-bottom: 3px solid #2A5D87; /* Dunkleres Blau */
+}
+.theme-beruhigendes-blau .nav-tabs a {
+  color: #F5F7FA !important;
+}
+.theme-beruhigendes-blau .container {
+  background: #F5F7FA;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.theme-beruhigendes-blau .task-form select,
+.theme-beruhigendes-blau .task-form input[type="text"],
+.theme-beruhigendes-blau .task-form input[type="date"],
+.theme-beruhigendes-blau .task-form textarea,
+.theme-beruhigendes-blau .setting-item input[type="checkbox"],
+.theme-beruhigendes-blau .setting-item select {
+  background: #E4EBF2;        /* Sehr helles Blau für Formulare */
+  color: #2D3E50;
+  border: 1px solid #BDC9D7;  /* Helles Blaugrau */
+}
+.theme-beruhigendes-blau .task {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.theme-beruhigendes-blau .task:nth-child(even) {
+  background: #E4EBF2;
+}
+.theme-beruhigendes-blau .meta,
+.theme-beruhigendes-blau .content .description {
+  color: #2D3E50;
+}
+.theme-beruhigendes-blau #preview-modal {
+  background: #F5F7FA;
+  color: #2D3E50;
+}
+.theme-beruhigendes-blau .download-btn {
+  background: #3F7CAC;
+  color: #F5F7FA;
+}
+.theme-beruhigendes-blau #preview-close,
+.theme-beruhigendes-blau #settings-close {
+  color: #5D8AA8;            /* Mittleres Blau */
+}
+.theme-beruhigendes-blau ::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-beruhigendes-blau ::-webkit-scrollbar-thumb {
+  background-color: #BDC9D7;
+  border-radius: 4px;
+}
+
+.theme-beruhigendes-blau .task-form button,
+.theme-beruhigendes-blau .download-btn {
+  background: #3F7CAC;
+  color: #ffffff;
+}
+
+/* =========================
+   11.2 Palette 2: Erdtöne
+   ========================= */
+.theme-erdtoene body {
+  background: #F8F5F0;        /* Warmes Off-White */
+  color: #3A3226;             /* Dunkles Braun */
+}
+.theme-erdtoene .header {
+  background: #5E6F64;        /* Gedämpftes Olivgrün */
+  color: #F8F5F0;
+}
+.theme-erdtoene .nav-tabs {
+  background-color: #5E6F64;
+  border-bottom: 3px solid #3D4D42; /* Dunkleres Olivgrün */
+}
+.theme-erdtoene .nav-tabs a {
+  color: #F8F5F0 !important;
+}
+.theme-erdtoene .container {
+  background: #F8F5F0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.theme-erdtoene .task-form select,
+.theme-erdtoene .task-form input[type="text"],
+.theme-erdtoene .task-form input[type="date"],
+.theme-erdtoene .task-form textarea,
+.theme-erdtoene .setting-item input[type="checkbox"],
+.theme-erdtoene .setting-item select {
+  background: #E8E0D5;        /* Warmes Hellbeige */
+  color: #3A3226;
+  border: 1px solid #C7BCB0;  /* Warmes Graubeige */
+}
+.theme-erdtoene .task {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.theme-erdtoene .task:nth-child(even) {
+  background: #E8E0D5;
+}
+.theme-erdtoene .meta,
+.theme-erdtoene .content .description {
+  color: #3A3226;
+}
+.theme-erdtoene #preview-modal {
+  background: #F8F5F0;
+  color: #3A3226;
+}
+.theme-erdtoene .download-btn {
+  background: #5E6F64;
+  color: #F8F5F0;
+}
+.theme-erdtoene #preview-close,
+.theme-erdtoene #settings-close {
+  color: #7D9D9C;            /* Gedämpftes Salbeigrün */
+}
+.theme-erdtoene ::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-erdtoene ::-webkit-scrollbar-thumb {
+  background-color: #C7BCB0;
+  border-radius: 4px;
+}
+
+.theme-erdtoene .task-form button,
+.theme-erdtoene .download-btn {
+  background: #5E6F64;
+  color: #ffffff;
+}
+
+/* =========================
+   11.3 Palette 3: Gedämpftes Pastell
+   ========================= */
+.theme-gedaempftes-pastell body {
+  background: #F5F5F5;        /* Neutrales Hellgrau */
+  color: #4A4A4A;             /* Mittleres Grau */
+}
+.theme-gedaempftes-pastell .header {
+  background: #9EB3C2;        /* Gedämpftes Taubenblau */
+  color: #F5F5F5;
+}
+.theme-gedaempftes-pastell .nav-tabs {
+  background-color: #9EB3C2;
+  border-bottom: 3px solid #7D95A3; /* Mittleres Taubenblau */
+}
+.theme-gedaempftes-pastell .nav-tabs a {
+  color: #F5F5F5 !important;
+}
+.theme-gedaempftes-pastell .container {
+  background: #F5F5F5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.theme-gedaempftes-pastell .task-form select,
+.theme-gedaempftes-pastell .task-form input[type="text"],
+.theme-gedaempftes-pastell .task-form input[type="date"],
+.theme-gedaempftes-pastell .task-form textarea,
+.theme-gedaempftes-pastell .setting-item input[type="checkbox"],
+.theme-gedaempftes-pastell .setting-item select {
+  background: #E8E8E8;        /* Helles Grau */
+  color: #4A4A4A;
+  border: 1px solid #D1D1D1;  /* Mittelgrau */
+}
+.theme-gedaempftes-pastell .task {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.theme-gedaempftes-pastell .task:nth-child(even) {
+  background: #E8E8E8;
+}
+.theme-gedaempftes-pastell .meta,
+.theme-gedaempftes-pastell .content .description {
+  color: #4A4A4A;
+}
+.theme-gedaempftes-pastell #preview-modal {
+  background: #F5F5F5;
+  color: #4A4A4A;
+}
+.theme-gedaempftes-pastell .download-btn {
+  background: #9EB3C2;
+  color: #F5F5F5;
+}
+.theme-gedaempftes-pastell #preview-close,
+.theme-gedaempftes-pastell #settings-close {
+  color: #B8BEDD;            /* Gedämpftes Lavendel */
+}
+.theme-gedaempftes-pastell ::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-gedaempftes-pastell ::-webkit-scrollbar-thumb {
+  background-color: #D1D1D1;
+  border-radius: 4px;
+}
+.theme-gedaempftes-pastell .task-form button,
+.theme-gedaempftes-pastell .download-btn {
+  background: #9EB3C2;
+  color: #333333;
+}
+
+/* =========================
+   11.4 Palette 4: Naturinspiriert
+   ========================= */
+.theme-naturinspiriert body {
+  background: #F0F4F1;        /* Sehr helles Mintgrün */
+  color: #30372D;             /* Dunkles Waldgrün */
+}
+.theme-naturinspiriert .header {
+  background: #678568;        /* Waldgrün */
+  color: #F0F4F1;
+}
+.theme-naturinspiriert .nav-tabs {
+  background-color: #678568;
+  border-bottom: 3px solid #4A6349; /* Dunkleres Waldgrün */
+}
+.theme-naturinspiriert .nav-tabs a {
+  color: #F0F4F1 !important;
+}
+.theme-naturinspiriert .container {
+  background: #F0F4F1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.theme-naturinspiriert .task-form select,
+.theme-naturinspiriert .task-form input[type="text"],
+.theme-naturinspiriert .task-form input[type="date"],
+.theme-naturinspiriert .task-form textarea,
+.theme-naturinspiriert .setting-item input[type="checkbox"],
+.theme-naturinspiriert .setting-item select {
+  background: #E0E8E1;        /* Helles Salbeigrün */
+  color: #30372D;
+  border: 1px solid #C5D2C6;  /* Helles Graugrün */
+}
+.theme-naturinspiriert .task {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.theme-naturinspiriert .task:nth-child(even) {
+  background: #E0E8E1;
+}
+.theme-naturinspiriert .meta,
+.theme-naturinspiriert .content .description {
+  color: #30372D;
+}
+.theme-naturinspiriert #preview-modal {
+  background: #F0F4F1;
+  color: #30372D;
+}
+.theme-naturinspiriert .download-btn {
+  background: #678568;
+  color: #F0F4F1;
+}
+.theme-naturinspiriert #preview-close,
+.theme-naturinspiriert #settings-close {
+  color: #A9C5A0;            /* Helles Moosgrün */
+}
+.theme-naturinspiriert ::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-naturinspiriert ::-webkit-scrollbar-thumb {
+  background-color: #C5D2C6;
+  border-radius: 4px;
+}
+
+.theme-naturinspiriert .task-form button,
+.theme-naturinspiriert .download-btn {
+  background: #678568;
+  color: #FBFDF4;
+}
+
+/* =========================
+   11.5 Palette 5: Lavendel & Neutral
+   ========================= */
+.theme-lavendel-neutral body {
+  background: #F5F2F7;        /* Sehr helles Lavendel */
+  color: #363239;             /* Dunkles Grauviolett */
+}
+.theme-lavendel-neutral .header {
+  background: #7D6B91;        /* Gedämpftes Lila */
+  color: #F5F2F7;
+}
+.theme-lavendel-neutral .nav-tabs {
+  background-color: #7D6B91;
+  border-bottom: 3px solid #5D4F6C; /* Dunkleres Lila */
+}
+.theme-lavendel-neutral .nav-tabs a {
+  color: #F5F2F7 !important;
+}
+.theme-lavendel-neutral .container {
+  background: #F5F2F7;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.theme-lavendel-neutral .task-form select,
+.theme-lavendel-neutral .task-form input[type="text"],
+.theme-lavendel-neutral .task-form input[type="date"],
+.theme-lavendel-neutral .task-form textarea,
+.theme-lavendel-neutral .setting-item input[type="checkbox"],
+.theme-lavendel-neutral .setting-item select {
+  background: #E7E1ED;        /* Helles Lavendel */
+  color: #363239;
+  border: 1px solid #CBC1D5;  /* Helles Graulavendel */
+}
+.theme-lavendel-neutral .task {
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.theme-lavendel-neutral .task:nth-child(even) {
+  background: #E7E1ED;
+}
+.theme-lavendel-neutral .meta,
+.theme-lavendel-neutral .content .description {
+  color: #363239;
+}
+.theme-lavendel-neutral #preview-modal {
+  background: #F5F2F7;
+  color: #363239;
+}
+.theme-lavendel-neutral .download-btn {
+  background: #7D6B91;
+  color: #F5F2F7;
+}
+.theme-lavendel-neutral #preview-close,
+.theme-lavendel-neutral #settings-close {
+  color: #A899BE;            /* Mittleres Lavendel */
+}
+.theme-lavendel-neutral ::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-lavendel-neutral ::-webkit-scrollbar-thumb {
+  background-color: #CBC1D5;
+  border-radius: 4px;
+}
+
+.theme-lavendel-neutral .task-form button,
+.theme-lavendel-neutral .download-btn {
+  background: #7D6B91;
+  color: #FFFFFF;
+}
+
+.attachment-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}

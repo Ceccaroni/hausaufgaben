@@ -1,3 +1,6 @@
+/* =========================
+   0) Bereits vorhandene Regeln
+   ========================= */
 
 .trash-button {
   background: transparent;
@@ -8,10 +11,41 @@
   padding: 0.2em;
   border-radius: 50%;
   transition: background 0.2s, color 0.2s;
-  box-sizing: border-box; display: none;
+  box-sizing: border-box;
+  display: none; /* Der Trash-Button wird in der Schüler-Ansicht standardmässig versteckt */
 }
 
 .trash-button:hover {
   background: rgba(0,0,0,0.05);
   color: #333;
+}
+
+/* =========================
+   1) Bearbeiten-Button (.edit-button)
+   ========================= */
+.edit-button {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: #0078D4;           /* identisch mit Admin-Farbe */
+  cursor: pointer;
+  padding: 0.2em;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+  box-sizing: border-box;
+  display: inline-flex;     /* Icon/Text zentriert ausrichten */
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-button:hover {
+  background: rgba(0, 120, 212, 0.1);
+  color: #005BB5;
+}
+
+.attachment-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
 }
