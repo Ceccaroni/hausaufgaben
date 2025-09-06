@@ -1,5 +1,32 @@
 // Datei: public/style-settings-overlay.js
 
+// style-settings-overlay.js – ganz oben einfügen/ersetzen
+(function () {
+  const p = location.pathname;
+  const IS_SUS   = /\/sus\.html(?:$|[?#])/.test(p);
+  const IS_ADMIN = /\/admin\.html(?:$|[?#])/.test(p);
+
+  // Overlay nur auf sus.html ODER admin.html aktivieren,
+  // auf anderen Seiten gar nichts tun:
+  if (!IS_SUS && !IS_ADMIN) return;
+
+  // ------------------------------
+  // AB HIER: dein bisheriger Overlay-/Einstellungs-Code
+  // (Open/Close, Theme, Farben, etc.) – UNVERÄNDERT lassen.
+  // ------------------------------
+
+  // Falls irgendwo Sound/Schüler-spezifische Effekte initialisiert werden:
+  // NUR auf der SuS-Seite ausführen:
+  if (IS_SUS) {
+    try {
+      const tap = new Audio('./assets/sounds/tap-tiny-wooden.mp3'); // exakter Pfad
+      tap.load();
+      window._tap = tap;
+    } catch (e) {}
+  }
+
+})(); // Ende Wrapper
+
 if (!/\/sus\.html(?:$|[\?#])/i.test(location.pathname)) {
   throw new Error('STOP_OVERLAY_ON_NON_SUS');
 }
@@ -161,6 +188,7 @@ function applySettings() {
 
 // Direkt nach Laden der Seite die Einstellungen anwenden
 applySettings();
+
 
 
 
