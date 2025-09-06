@@ -5,30 +5,30 @@
   <title>Hausaufgaben – Schüler:innen-Übersicht</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- 1. Fade-CSS extern einbinden -->
+  <!-- Fade-CSS -->
   <link rel="stylesheet" href="public/fade.css">
 
+  <!-- Favicon / Touch-Icon -->
   <link rel="icon" href="./assets/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 
-  <!-- Ausgelagertes CSS -->
-  <!-- Gemeinsames Styling für Frontend & Backend -->
+  <!-- Gemeinsames Styling -->
   <link rel="stylesheet" href="public/style-shared.css">
   <link rel="stylesheet" href="public/style-settings.css">
-  <link rel="stylesheet" href="public/style-sus.css">
+  <!-- SuS-spezifisches Styling -->
+  <link rel="stylesheet" href="public/style-sus.css?v=2025-09-06-1">
 </head>
 
 <body class="fade-initial">
 
-  <!-- === Header mit Logo und Titel === -->
+  <!-- Header -->
   <header role="banner">
-    <img 
-      class="school-logo" 
-      src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" 
-      alt="Schullogo">
+    <img class="school-logo"
+         src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg"
+         alt="Schullogo">
     <h1 class="header">Hausaufgabenübersicht</h1>
 
-    <!-- === Navigations-Tabs (TEACCH: konstante Navigation) === -->
+    <!-- Navigation -->
     <nav role="navigation" aria-label="Hauptnavigation">
       <ul class="nav-tabs">
         <li><a href="#heute" aria-current="page">Heute</a></li>
@@ -48,10 +48,12 @@
     <div id="settings-modal">
       <button id="settings-close" aria-label="Einstellungen schliessen">×</button>
       <h2>Einstellungen</h2>
+
       <div class="setting-item">
         <label for="toggle-sound">Ton ein/aus</label>
         <input type="checkbox" id="toggle-sound">
       </div>
+
       <div class="setting-item">
         <label for="select-theme">Farbmodus</label>
         <select id="select-theme">
@@ -63,7 +65,7 @@
           <option value="lavendel-neutral">Lavendel & Neutral</option>
         </select>
       </div>
-      <!-- Schriftgrösse Slider -->
+
       <div class="setting-item">
         <label for="fontsize-slider">
           Schriftgrösse: <span id="fontsize-value">12</span> px
@@ -77,7 +79,7 @@
           value="12"
         />
       </div>
-      <!-- Kontrast Slider -->
+
       <div class="setting-item">
         <label for="contrast-slider">
           Kontrast: <span id="contrast-value">100</span> %
@@ -94,7 +96,7 @@
     </div>
   </div>
 
-  <!-- === Main-Inhalt === -->
+  <!-- Main -->
   <main role="main">
     <section id="heute" aria-labelledby="heute-title">
       <h2 id="heute-title" class="visually-hidden">Aufgaben für heute</h2>
@@ -119,14 +121,16 @@
           <option>TG/XG</option>
           <option>WAH</option>
         </select>
+
         <input type="text" id="task-title" placeholder="Titel" required>
         <input type="date" id="task-date" required>
         <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
-<label class="file-label">
-  <img class="attachment-icon" src="assets/icon-attachment.svg" alt="Datei auswählen">
-  <span id="file-names">Datei/Foto auswählen</span>
-  <input type="file" id="task-attachments" multiple>
-</label>
+
+        <label class="file-label">
+          <img class="attachment-icon" src="assets/icon-attachment.svg" alt="Datei auswählen">
+          <span id="file-names">Datei/Foto auswählen</span>
+          <input type="file" id="task-attachments" multiple>
+        </label>
 
         <button type="submit">Hinzufügen</button>
       </form>
@@ -142,37 +146,38 @@
     </section>
   </main>
 
-  <!-- === Vorschau-Overlay (Modal) === -->
+  <!-- Vorschau-Overlay -->
   <div id="preview-overlay">
     <div id="preview-modal">
-      <button id="preview-close" aria-label="Vorschau schließen">×</button>
+      <button id="preview-close" aria-label="Vorschau schliessen">×</button>
       <div id="preview-content"></div>
       <a id="preview-download" class="download-btn" href>Download</a>
     </div>
   </div>
 
-<script>window.PAGE = 'student';</script>
-  
-  <!-- Ausgelagertes JavaScript -->
+  <!-- Seitentyp -->
+  <script>window.PAGE = 'sus';</script>
+
+  <!-- JavaScript -->
   <script src="public/sus.js"></script>
   <script src="public/style-settings-overlay.js"></script>
 
-  <!-- Fade-In beim Laden -->
+  <!-- Fade-In -->
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       document.body.classList.remove('fade-initial');
     });
   </script>
 
-  <!-- Service Worker-Registrierung -->
+  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js')
         .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
     }
   </script>
-<!-- Klick‑Sound, Standard zunächst ungehört -->
-<audio id="click-sound" src="assets/tap-tiny-wooden.mp3" preload="auto"></audio>
 
+  <!-- Klick-Sound (korrekter Pfad) -->
+  <audio id="click-sound" src="assets/sounds/tap-tiny-wooden.mp3" preload="auto"></audio>
 </body>
 </html>
