@@ -7,6 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
+const db = supabase.schema('app');
 
 /* ===== DOM ===== */
 const form      = document.getElementById('task-form');
@@ -50,8 +51,8 @@ async function loadTasks() {
   clearLists();
   const todayISO = new Date().toISOString().split('T')[0];
 
-  const { data, error } = await supabase
-    .from('app.admin_tasks')
+  const { data, error } = await db
+    .from('admin_tasks')
     .select('*')
     .order('due_date', { ascending: true })
     .limit(1000);
@@ -96,7 +97,7 @@ function renderEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    const { error } = await supabase.from('app.admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    const { error } = await db.from('admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
     if (error) alert('Konnte Status nicht speichern: ' + error.message);
     loadTasks();
   });
@@ -107,7 +108,7 @@ function renderEntry(entry, todayISO) {
   del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
-    const { error } = await supabase.from('app.admin_tasks').delete().eq('id', entry.id);
+    const { error } = await db.from('admin_tasks').delete().eq('id', entry.id);
     if (error) alert('Löschen fehlgeschlagen: ' + error.message);
     loadTasks();
   });
@@ -128,7 +129,7 @@ form?.addEventListener('submit', async (e) => {
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  const { error } = await supabase.from('app.admin_tasks').insert([{ subject, title, description, due_date, done:false }]);
+  const { error } = await db.from('admin_tasks').insert([{ subject, title, description, due_date, done:false }]);
   if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
 
   form.reset();
