@@ -1,4 +1,5 @@
-/* Datei: public/sus.js – als <script type="module" src="public/sus.js"> einbinden */
+/* Datei: public/sus.js – als <script type="module" src="public/sus.js?v=edit-2"> einbinden */
+console.log('[sus.js] build edit-2 geladen');
 
 const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
@@ -7,7 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' } // wichtig: wir arbeiten im Schema "app"
+  db: { schema: 'app' } // wir arbeiten im Schema "app"
 });
 
 /* ===== DOM ===== */
@@ -164,17 +165,21 @@ function renderStudentEntry(entry, todayISO) {
   });
   controls.append(chk);
 
-  // Edit-Button (✏️)
+  // Edit-Button (✏️) – per Inline-Style sichtbar erzwingen
   const editBtn = document.createElement('button');
   editBtn.className = 'edit-button';
   editBtn.title = 'Aufgabe bearbeiten';
   editBtn.textContent = '✏️';
+  editBtn.style.display = 'inline-flex'; // CSS-Override
   editBtn.addEventListener('click', () => startEdit(entry, li));
   controls.append(editBtn);
 
-  // Trash (löschen erlaubt)
+  // Trash (löschen erlaubt) – per Inline-Style sichtbar erzwingen
   const del = document.createElement('button');
-  del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
+  del.className='trash-button';
+  del.innerHTML='🗑️';
+  del.title='Aufgabe löschen';
+  del.style.display = 'inline-flex'; // CSS-Override
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
     const { error } = await supabase.from('student_tasks').delete().eq('id', entry.id);
@@ -191,18 +196,15 @@ function renderStudentEntry(entry, todayISO) {
 
 /* ===== Inline-Edit für eigene SuS-Tasks ===== */
 function startEdit(entry, li) {
-  // bereits im Edit? -> ignorieren
-  if (li.querySelector('.edit-form')) return;
+  if (li.querySelector('.edit-form')) return; // schon im Edit
 
   const body = li.querySelector('.content');
   const meta = li.querySelector('.meta');
   const controls = li.querySelector('.controls');
 
-  // Original sichern (für Cancel)
   const original = body.innerHTML;
   const originalMeta = meta.innerHTML;
 
-  // Form bauen
   const wrap = document.createElement('div');
   wrap.className = 'edit-form';
 
@@ -222,19 +224,15 @@ function startEdit(entry, li) {
   const descTa = document.createElement('textarea');
   descTa.value = entry.description || ''; descTa.placeholder = 'Beschreibung (optional)';
 
-  // kleine Buttons
-  const saveBtn = document.createElement('button'); saveBtn.textContent = 'Speichern';
-  saveBtn.style.marginRight = '0.5em';
+  const saveBtn = document.createElement('button'); saveBtn.textContent = 'Speichern'; saveBtn.style.marginRight='0.5em';
   const cancelBtn = document.createElement('button'); cancelBtn.textContent = 'Abbrechen';
 
-  // Meta ersetzen (Datum + Fach editierbar anzeigen)
   meta.innerHTML = '';
   meta.append(
     mkLabelWrap('Fach', subjSel),
     mkLabelWrap('Fällig', dateIn)
   );
 
-  // Content ersetzen
   body.innerHTML = '';
   body.append(
     mkLabelWrap('Titel', titleIn),
@@ -242,8 +240,10 @@ function startEdit(entry, li) {
     saveBtn, cancelBtn
   );
 
-  // Controls während Edit sperren (Checkbox/Trash ausblenden)
-  [...controls.children].forEach(ch => { if (ch !== controls.firstChild) ch.style.display = 'none'; });
+  // während Edit: nur Checkbox aktiv lassen
+  [...controls.children].forEach(ch => {
+    if (ch !== controls.firstChild) ch.style.display = 'none';
+  });
 
   cancelBtn.addEventListener('click', (e) => {
     e.preventDefault();
