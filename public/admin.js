@@ -4,8 +4,10 @@ const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true }
+  auth: { persistSession: true, autoRefreshToken: true },
+  db: { schema: 'app' } // << wichtig: auf Schema "app" umstellen
 });
 
 /* ===== DOM ===== */
@@ -51,7 +53,7 @@ async function loadTasks() {
   const todayISO = new Date().toISOString().split('T')[0];
 
   const { data, error } = await supabase
-    .from('app.admin_tasks')
+    .from('admin_tasks')              // << ohne "app."
     .select('*')
     .order('due_date', { ascending: true })
     .limit(1000);
@@ -96,7 +98,7 @@ function renderEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    const { error } = await supabase.from('app.admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    const { error } = await supabase.from('admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
     if (error) alert('Konnte Status nicht speichern: ' + error.message);
     loadTasks();
   });
@@ -107,7 +109,7 @@ function renderEntry(entry, todayISO) {
   del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
-    const { error } = await supabase.from('app.admin_tasks').delete().eq('id', entry.id);
+    const { error } = await supabase.from('admin_tasks').delete().eq('id', entry.id);
     if (error) alert('Löschen fehlgeschlagen: ' + error.message);
     loadTasks();
   });
@@ -128,31 +130,15 @@ form?.addEventListener('submit', async (e) => {
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  const { error } = await supabase.from('app.admin_tasks')
-    .insert([{ subject, title, description, due_date, done:false }]);
+  const { error } = await supabase.from('admin_tasks').insert([{ subject, title, description, due_date, done:false }]);
   if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
 
   form.reset();
   await loadTasks();
 });
 
-/* ===== Realtime: Admin-Tasks live nachladen ===== */
-function subscribeRealtime() {
-  supabase
-    .channel('admin_tasks_rt')
-    .on('postgres_changes', { event: '*', schema: 'app', table: 'admin_tasks' }, () => {
-      loadTasks();
-    })
-    .subscribe();
-}
-
 /* ===== Start ===== */
 (async () => {
-  try {
-    await requireAdmin();
-    await loadTasks();
-    subscribeRealtime();
-  } catch (e) {
-    console.error(e);
-  }
+  try { await requireAdmin(); await loadTasks(); }
+  catch (e) { console.error(e); }
 })();
