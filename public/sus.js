@@ -166,4 +166,30 @@ function renderStudentEntry(entry, todayISO) {
   controls.append(del);
 
   header.append(meta, content, controls);
-  li.append
+  li.append(header);
+
+  if (entry.done) listDone.appendChild(li);
+  else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
+  else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
+  else                                          { listAll.appendChild(li); }
+}
+
+/* ===== Neues SuS-Item (privat) ===== */
+form?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
+  if (!subject || !title || !due_date) return;
+
+  // user_id wird via Trigger gesetzt; du kannst ihn auch explizit setzen.
+  const { error } = await db.from('student_tasks').insert([{ subject, title, description, due_date, done:false }]);
+  if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+
+  form.reset();
+  await loadTasks();
+});
+
+/* ===== Start ===== */
+(async () => {
+  try { await requireStudent(); await loadTasks(); }
+  catch (e) { console.error(e); }
+})();
