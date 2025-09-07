@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="icon" href="./assets/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 
   <!-- 1. Fade-CSS extern einbinden -->
   <link rel="stylesheet" href="public/fade.css">
@@ -15,21 +15,15 @@
   <link rel="stylesheet" href="public/style-shared.css">
   <link rel="stylesheet" href="public/style-settings.css">
   <link rel="stylesheet" href="public/style-admin.css">
-  <!-- <link rel="stylesheet" href="/public/style-admin.css"> -->
-  <!-- Dies ist der CSS-Link für das Admin-Styling
-       Wird aktuell nicht gebraucht, da alles in style-shared.css -->
 </head>
 
 <body class="fade-initial">
 
-  <!-- Authentifizierungs-Overlay (Standard sichtbar, bis Login erfolgreich) -->
-
-
-   <!-- === Header mit Logo und Titel === -->
+  <!-- === Header mit Logo und Titel === -->
   <header role="banner">
-    <img 
-      class="school-logo" 
-      src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg" 
+    <img
+      class="school-logo"
+      src="https://www.schulehuttwil.ch/public/upload/assets/12/logo-huttwil.svg"
       alt="Schullogo">
     <h1 class="header">Hausaufgaben - Lehrerseite</h1>
 
@@ -48,7 +42,7 @@
     </nav>
   </header>
 
-<!-- Settings-Overlay -->
+  <!-- Settings-Overlay -->
   <div id="settings-overlay" class="hidden">
     <div id="settings-modal">
       <button id="settings-close" aria-label="Einstellungen schliessen">×</button>
@@ -99,7 +93,6 @@
     </div>
   </div>
 
-
   <!-- === Main-Inhalt === -->
   <main role="main">
     <!-- 1) Bereich: Aufgaben für heute -->
@@ -131,11 +124,11 @@
         <input type="text" id="task-title" placeholder="Titel" required>
         <input type="date" id="task-date" required>
         <textarea id="task-desc" placeholder="Beschreibung (optional)"></textarea>
-<label class="file-label">
-  <img class="attachment-icon" src="assets/icon-attachment.svg" alt="Datei auswählen">
-  <span id="file-names">Datei/Foto auswählen</span>
-  <input type="file" id="task-attachments" multiple>
-</label>
+        <label class="file-label">
+          <img class="attachment-icon" src="assets/icon-attachment.svg" alt="Datei auswählen">
+          <span id="file-names">Datei/Foto auswählen</span>
+          <input type="file" id="task-attachments" multiple>
+        </label>
         <button type="submit">Hinzufügen</button>
       </form>
     </div>
@@ -143,7 +136,6 @@
     <!-- 2) Bereich: Alle Aufgaben -->
     <section id="alle" aria-labelledby="alle-title">
       <h2 id="alle-title" class="visually-hidden">Alle Aufgaben</h2>
-      <!-- Abstand über der Liste -->
       <div style="margin-top: 2em;"></div>
       <!-- UL für Alle-Aufgaben wird per JS erzeugt -->
     </section>
@@ -158,114 +150,35 @@
   <!-- === Vorschau-Overlay (Modal) === -->
   <div id="preview-overlay">
     <div id="preview-modal">
-      <button id="preview-close" aria-label="Vorschau schließen">×</button>
+      <button id="preview-close" aria-label="Vorschau schliessen">×</button>
       <div id="preview-content"></div>
       <a id="preview-download" class="download-btn" href>Download</a>
     </div>
   </div>
 
   <script>window.PAGE = 'admin';</script>
-  
-  <!-- 4. Ausgelagertes JavaScript -->
-  <script src="public/sus.js"></script>
-  <script src="public/style-settings-overlay.js"></script>
 
-  <!-- 5. Fade-In beim Laden aktivieren -->
+  <!-- Fade-In beim Laden -->
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       document.body.classList.remove('fade-initial');
     });
   </script>
 
-  <!-- 6. Service Worker-Registrierung -->
+  <!-- Service Worker-Registrierung -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js')
         .catch(err => console.error('Service Worker konnte nicht registriert werden:', err));
     }
   </script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.PAGE !== 'admin') return;
 
-  // --- Sound (auch auf Admin) ---
-  try {
-    if (!window._tap) {
-      const a = new Audio('./assets/sounds/tap-tiny-wooden.mp3');
-      a.load();
-      window._tap = a;
-    }
-  } catch (e) {}
+  <!-- Overlay-Logik (eine Quelle) -->
+  <script src="public/style-settings-overlay.js"></script>
 
-  // --- Overlay öffnen/schliessen ---
-  const btn     = document.getElementById('settings-btn');
-  const overlay = document.getElementById('settings-overlay');
-  const close   = document.getElementById('settings-close');
-  if (!btn || !overlay) return;
+  <!-- Admin-App als ES-Modul -->
+  <script type="module" src="public/admin.js"></script>
 
-  const open = () => {
-    overlay.classList.remove('hidden');
-    overlay.style.display = 'block';
-    document.documentElement.classList.add('settings-open');
-  };
-  const hide = () => {
-    overlay.classList.add('hidden');
-    overlay.style.display = '';
-    document.documentElement.classList.remove('settings-open');
-  };
-
-  btn.addEventListener('click', (ev) => { ev.preventDefault(); open(); }, true);
-  close?.addEventListener('click', (ev) => { ev.preventDefault(); hide(); }, true);
-  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) hide(); }, true);
-
-  // --- Slider & Auswahl → localStorage (wie gehabt) ---
-  const LS = 'settings';
-  const st = (() => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } })();
-
-  const elSound  = document.getElementById('toggle-sound');
-  const elTheme  = document.getElementById('select-theme');
-  const fsSlider = document.getElementById('fontsize-slider');
-  const fsValue  = document.getElementById('fontsize-value');
-  const cSlider  = document.getElementById('contrast-slider');
-  const cValue   = document.getElementById('contrast-value');
-
-  if (elSound) {
-    elSound.checked = !!st.sound;
-    elSound.addEventListener('change', () => { st.sound = elSound.checked; localStorage.setItem(LS, JSON.stringify(st)); });
-  }
-
-  const applyTheme = (v) => { document.documentElement.dataset.theme = v || 'standard'; };
-  if (elTheme) {
-    elTheme.value = st.theme || 'standard';
-    applyTheme(elTheme.value);
-    elTheme.addEventListener('change', () => { st.theme = elTheme.value; localStorage.setItem(LS, JSON.stringify(st)); applyTheme(elTheme.value); });
-  }
-
-  const setFont = (px) => document.documentElement.style.setProperty('--base-font', px + 'px');
-  if (fsSlider && fsValue) {
-    fsSlider.value = String(st.fontsize ?? 12);
-    fsValue.textContent = fsSlider.value;
-    setFont(Number(fsSlider.value));
-    fsSlider.addEventListener('input', () => { fsValue.textContent = fsSlider.value; setFont(Number(fsSlider.value)); });
-    fsSlider.addEventListener('change', () => { st.fontsize = Number(fsSlider.value); localStorage.setItem(LS, JSON.stringify(st)); });
-  }
-
-  const setContrast = (pct) => document.documentElement.style.setProperty('--contrast', pct + '%');
-  if (cSlider && cValue) {
-    cSlider.value = String(st.contrast ?? 100);
-    cValue.textContent = cSlider.value;
-    setContrast(Number(cSlider.value));
-    cSlider.addEventListener('input', () => { cValue.textContent = cSlider.value; setContrast(Number(cSlider.value)); });
-    cSlider.addEventListener('change', () => { st.contrast = Number(cSlider.value); localStorage.setItem(LS, JSON.stringify(st)); });
-  }
-});
-</script>
-<!-- bleibt normales Script -->
-<script src="public/style-settings-overlay.js"></script>
-
-<!-- NEU: als Module laden -->
-<script type="module" src="public/admin.js"></script>
-
-  
 </body>
 </html>
+
