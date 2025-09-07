@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' } // << wichtig: auf Schema "app" umstellen
+  db: { schema: 'app' } // Schema "app"
 });
 
 /* ===== DOM ===== */
@@ -55,7 +55,7 @@ async function loadTasks() {
 
   // 1) Öffentliche Lehrer-Aufgaben (read-only)
   const { data: admins, error: e1 } = await supabase
-    .from('admin_tasks')               // << ohne "app."
+    .from('admin_tasks')
     .select('*')
     .order('due_date', { ascending: true });
 
@@ -67,7 +67,7 @@ async function loadTasks() {
   const uid = usr?.user?.id;
   if (uid) {
     const { data: mine, error: e2 } = await supabase
-      .from('student_tasks')           // << ohne "app."
+      .from('student_tasks')
       .select('*')
       .eq('user_id', uid)
       .order('due_date', { ascending: true });
