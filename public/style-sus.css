@@ -36,6 +36,10 @@
   align-items: center;
   justify-content: center;
 }
+/* SuS: Papierkorb für eigene Einträge sichtbar machen */
+.task.own .trash-button { 
+  display: inline-flex !important;
+}
 
 .edit-button:hover {
   background: rgba(0, 120, 212, 0.1);
