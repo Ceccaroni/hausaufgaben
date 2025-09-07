@@ -1,13 +1,12 @@
 /* Datei: public/sus.js – als <script type="module" src="public/sus.js"> einbinden */
 
-const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';   // <- einsetzen
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';                         // <- einsetzen
+const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
-const db = supabase.schema('app');
 
 /* ===== DOM ===== */
 const form      = document.getElementById('task-form');
@@ -15,7 +14,6 @@ const subjI     = document.getElementById('task-subject');
 const titleI    = document.getElementById('task-title');
 const dateI     = document.getElementById('task-date');
 const descI     = document.getElementById('task-desc');
-const fileNames = document.getElementById('file-names'); // aktuell ungenutzt
 
 const sectionHeute    = document.getElementById('heute');
 const sectionAlle     = document.getElementById('alle');
@@ -53,20 +51,20 @@ async function loadTasks() {
   const todayISO = new Date().toISOString().split('T')[0];
 
   // 1) Öffentliche Lehrer-Aufgaben (read-only)
-  const { data: admins, error: e1 } = await db
-    .from('admin_tasks')
+  const { data: admins, error: e1 } = await supabase
+    .from('app.admin_tasks')
     .select('*')
     .order('due_date', { ascending: true });
 
   if (e1) { console.error(e1); alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message); }
-  else { (admins || []).forEach(entry => renderEntry(entry, todayISO)); }
+  else { (admins || []).forEach(entry => renderAdminEntry(entry, todayISO)); }
 
   // 2) Eigene SuS-Aufgaben (privat)
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id;
   if (uid) {
-    const { data: mine, error: e2 } = await db
-      .from('student_tasks')
+    const { data: mine, error: e2 } = await supabase
+      .from('app.student_tasks')
       .select('*')
       .eq('user_id', uid)
       .order('due_date', { ascending: true });
@@ -87,7 +85,7 @@ function toggleHeadings() {
 }
 
 /* ===== Render: Admin-Task (read-only) ===== */
-function renderEntry(entry, todayISO) {
+function renderAdminEntry(entry, todayISO) {
   const li = document.createElement('li'); li.className='task';
   const header = document.createElement('div'); header.className='task-header';
 
@@ -108,7 +106,7 @@ function renderEntry(entry, todayISO) {
   }
 
   const controls = document.createElement('div'); controls.className='controls';
-  const chk = document.createElement('input'); // nur Anzeige
+  const chk = document.createElement('input'); // Anzeige
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done; chk.disabled = true;
   controls.append(chk);
 
@@ -148,7 +146,7 @@ function renderStudentEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    const { error } = await db.from('student_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    const { error } = await supabase.from('app.student_tasks').update({ done: chk.checked }).eq('id', entry.id);
     if (error) alert('Konnte Status nicht speichern: ' + error.message);
     loadTasks();
   });
@@ -159,7 +157,7 @@ function renderStudentEntry(entry, todayISO) {
   del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
-    const { error } = await db.from('student_tasks').delete().eq('id', entry.id);
+    const { error } = await supabase.from('app.student_tasks').delete().eq('id', entry.id);
     if (error) alert('Löschen fehlgeschlagen: ' + error.message);
     loadTasks();
   });
@@ -174,22 +172,56 @@ function renderStudentEntry(entry, todayISO) {
   else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Neues SuS-Item (privat) ===== */
+/* ===== Neues SuS-Item (privat) – setzt user_id explizit ===== */
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  // user_id wird via Trigger gesetzt; du kannst ihn auch explizit setzen.
-  const { error } = await db.from('student_tasks').insert([{ subject, title, description, due_date, done:false }]);
+  const { data: usr, error: uerr } = await supabase.auth.getUser();
+  if (uerr || !usr?.user?.id) { alert('Nicht eingeloggt.'); return; }
+  const user_id = usr.user.id;
+
+  const { error } = await supabase.from('app.student_tasks')
+    .insert([{ user_id, subject, title, description, due_date, done:false }]);
   if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
 
   form.reset();
   await loadTasks();
 });
 
+/* ===== Realtime: Admin + eigene SuS-Tasks ===== */
+async function subscribeRealtime() {
+  // Admin-Tasks: alle Änderungen → Liste neu laden
+  supabase
+    .channel('admin_tasks_rt')
+    .on('postgres_changes', { event: '*', schema: 'app', table: 'admin_tasks' }, () => {
+      loadTasks();
+    })
+    .subscribe();
+
+  // Eigene SuS-Tasks: gefiltert nach user_id
+  const { data: usr } = await supabase.auth.getUser();
+  const uid = usr?.user?.id;
+  if (uid) {
+    supabase
+      .channel('student_tasks_rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'app', table: 'student_tasks', filter: `user_id=eq.${uid}` },
+        () => { loadTasks(); }
+      )
+      .subscribe();
+  }
+}
+
 /* ===== Start ===== */
 (async () => {
-  try { await requireStudent(); await loadTasks(); }
-  catch (e) { console.error(e); }
+  try {
+    await requireStudent();
+    await loadTasks();
+    await subscribeRealtime();
+  } catch (e) {
+    console.error(e);
+  }
 })();
