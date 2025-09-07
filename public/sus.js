@@ -1,5 +1,4 @@
-/* Datei: public/sus.js – als <script type="module" src="public/sus.js?v=edit-2"> einbinden */
-console.log('[sus.js] build edit-2 geladen');
+/* Datei: public/sus.js – als <script type="module" src="public/sus.js"> einbinden */
 
 const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
@@ -8,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' } // wir arbeiten im Schema "app"
+  db: { schema: 'app' }
 });
 
 /* ===== DOM ===== */
@@ -22,9 +21,9 @@ const sectionHeute    = document.getElementById('heute');
 const sectionAlle     = document.getElementById('alle');
 const sectionErledigt = document.getElementById('erledigt');
 
-const listToday = sectionHeute.querySelector('#task-list-today')   || mkList(sectionHeute,    'task-list-today');
-const listAll   = sectionAlle.querySelector('#task-list-all')      || mkList(sectionAlle,     'task-list-all');
-const listDone  = sectionErledigt.querySelector('#task-list-done') || mkList(sectionErledigt, 'task-list-done');
+const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(sectionHeute, 'task-list-today');
+const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
+const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
 
 function mkList(sectionEl, id) {
   const ul = document.createElement('ul');
@@ -33,12 +32,6 @@ function mkList(sectionEl, id) {
   sectionEl.appendChild(ul);
   return ul;
 }
-
-/* Für Edit-Auswahl */
-const SUBJECTS = [
-  'BG','Deutsch','Englisch','ERG','Französisch','HW','Italienisch','IVE',
-  'Mathematik','MI','NT','RZG','TG/XG','WAH'
-];
 
 /* ===== Login (Schülerin) ===== */
 async function requireStudent() {
@@ -57,9 +50,13 @@ async function requireStudent() {
 /* ===== Laden & Rendern ===== */
 async function loadTasks() {
   clearLists();
-  const todayISO = isoDate(new Date());
+  const todayISO = new Date().toISOString().split('T')[0];
 
-  // 1) Lehrer-Aufgaben (read-only)
+  // Aktuellen User holen
+  const { data: usr } = await supabase.auth.getUser();
+  const uid = usr?.user?.id || null;
+
+  // 1) Alle Admin-Aufgaben laden
   const { data: admins, error: e1 } = await supabase
     .from('admin_tasks')
     .select('*')
@@ -68,13 +65,32 @@ async function loadTasks() {
   if (e1) {
     console.error(e1);
     alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message);
-  } else {
-    (admins || []).forEach(entry => renderAdminEntry(entry, todayISO));
   }
 
-  // 2) Eigene SuS-Aufgaben
-  const { data: usr } = await supabase.auth.getUser();
-  const uid = usr?.user?.id;
+  // 1b) Eigene Statuszeilen zu Admin-Aufgaben laden (done pro Schülerin)
+  let statusMap = new Map();
+  if (uid && admins?.length) {
+    const ids = admins.map(a => a.id);
+    const { data: statusRows, error: eStatus } = await supabase
+      .from('admin_task_status')
+      .select('task_id, done')
+      .eq('user_id', uid)
+      .in('task_id', ids);
+
+    if (eStatus) {
+      console.error(eStatus);
+    } else {
+      (statusRows || []).forEach(r => statusMap.set(r.task_id, !!r.done));
+    }
+  }
+
+  // Admin-Aufgaben rendern (Checkbox aktiv für eigene Erledigt-Markierung)
+  (admins || []).forEach(entry => {
+    const doneForMe = statusMap.get(entry.id) || false;
+    renderAdminEntry(entry, todayISO, doneForMe, uid);
+  });
+
+  // 2) Eigene SuS-Aufgaben (privat)
   if (uid) {
     const { data: mine, error: e2 } = await supabase
       .from('student_tasks')
@@ -101,14 +117,16 @@ function toggleHeadings() {
   document.getElementById('erledigt-title').classList.toggle('visually-hidden', listDone.children.length===0);
 }
 
-/* ===== Render: Admin-Task (read-only) ===== */
-function renderAdminEntry(entry, todayISO) {
+/* ===== Render: Admin-Task (pro Schülerin abhakbar) ===== */
+function renderAdminEntry(entry, todayISO, doneForMe, uid) {
   const li = document.createElement('li'); li.className='task';
   const header = document.createElement('div'); header.className='task-header';
 
   const meta = document.createElement('div'); meta.className='meta';
   const dateEl = document.createElement('span'); dateEl.className='date';
-  dateEl.textContent = humanDate(entry.due_date);
+  const [y,m,d] = String(entry.due_date).split('-');
+  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  dateEl.textContent = parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
   const subjEl = document.createElement('span'); subjEl.className='subject'; subjEl.textContent = entry.subject;
   meta.append(dateEl, subjEl);
 
@@ -121,24 +139,56 @@ function renderAdminEntry(entry, todayISO) {
   }
 
   const controls = document.createElement('div'); controls.className='controls';
-  const chk = document.createElement('input'); // nur Anzeige
-  chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done; chk.disabled = true;
+
+  // Done-Checkbox (aktiv: speichert in app.admin_task_status per upsert)
+  const chk = document.createElement('input');
+  chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!doneForMe; chk.disabled = !uid;
+  chk.addEventListener('change', async () => {
+    if (!uid) return;
+
+    const payload = { task_id: entry.id, user_id: uid, done: chk.checked };
+    // Voraussetzung: UNIQUE (task_id, user_id) auf app.admin_task_status
+    const { error } = await supabase
+      .from('admin_task_status')
+      .upsert(payload, { onConflict: 'task_id,user_id' });
+
+    if (error) {
+      alert('Konnte Status nicht speichern: ' + error.message);
+      // UI zurücksetzen, wenn fehlgeschlagen
+      chk.checked = !chk.checked;
+      return;
+    }
+
+    // Nach erfolgreichem Speichern UI neu aufbauen (verschiebt Karte zwischen Listen)
+    await loadTasks();
+  });
   controls.append(chk);
 
   header.append(meta, content, controls);
   li.append(header);
 
-  placeByDate(li, entry.due_date, entry.done, todayISO);
+  // Platzierung in Listen basierend auf doneForMe
+  if (doneForMe) {
+    listDone.appendChild(li);
+  } else if (String(entry.due_date) === todayISO) {
+    li.classList.add('due-today'); listToday.appendChild(li);
+  } else if (String(entry.due_date) < todayISO) {
+    li.classList.add('overdue');   listAll.appendChild(li);
+  } else {
+    listAll.appendChild(li);
+  }
 }
 
-/* ===== Render: eigene SuS-Task (editierbar + löschbar) ===== */
+/* ===== Render: eigene SuS-Task (bearbeitbar/löschbar) ===== */
 function renderStudentEntry(entry, todayISO) {
   const li = document.createElement('li'); li.className='task';
   const header = document.createElement('div'); header.className='task-header';
 
   const meta = document.createElement('div'); meta.className='meta';
   const dateEl = document.createElement('span'); dateEl.className='date';
-  dateEl.textContent = humanDate(entry.due_date);
+  const [y,m,d] = String(entry.due_date).split('-');
+  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  dateEl.textContent = parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
   const subjEl = document.createElement('span'); subjEl.className='subject'; subjEl.textContent = entry.subject;
   meta.append(dateEl, subjEl);
 
@@ -156,151 +206,30 @@ function renderStudentEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    const { error } = await supabase
-      .from('student_tasks')
-      .update({ done: chk.checked })
-      .eq('id', entry.id);
-    if (error) alert('Konnte Status nicht speichern: ' + error.message);
-    else loadTasks();
+    const { error } = await supabase.from('student_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    if (error) { alert('Konnte Status nicht speichern: ' + error.message); chk.checked = !chk.checked; return; }
+    await loadTasks();
   });
   controls.append(chk);
 
-  // Edit-Button (✏️) – per Inline-Style sichtbar erzwingen
-  const editBtn = document.createElement('button');
-  editBtn.className = 'edit-button';
-  editBtn.title = 'Aufgabe bearbeiten';
-  editBtn.textContent = '✏️';
-  editBtn.style.display = 'inline-flex'; // CSS-Override
-  editBtn.addEventListener('click', () => startEdit(entry, li));
-  controls.append(editBtn);
-
-  // Trash (löschen erlaubt) – per Inline-Style sichtbar erzwingen
+  // Trash (löschen erlaubt)
   const del = document.createElement('button');
-  del.className='trash-button';
-  del.innerHTML='🗑️';
-  del.title='Aufgabe löschen';
-  del.style.display = 'inline-flex'; // CSS-Override
+  del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
     const { error } = await supabase.from('student_tasks').delete().eq('id', entry.id);
-    if (error) alert('Löschen fehlgeschlagen: ' + error.message);
-    else loadTasks();
+    if (error) { alert('Löschen fehlgeschlagen: ' + error.message); return; }
+    await loadTasks();
   });
   controls.append(del);
 
   header.append(meta, content, controls);
   li.append(header);
 
-  placeByDate(li, entry.due_date, entry.done, todayISO);
-}
-
-/* ===== Inline-Edit für eigene SuS-Tasks ===== */
-function startEdit(entry, li) {
-  if (li.querySelector('.edit-form')) return; // schon im Edit
-
-  const body = li.querySelector('.content');
-  const meta = li.querySelector('.meta');
-  const controls = li.querySelector('.controls');
-
-  const original = body.innerHTML;
-  const originalMeta = meta.innerHTML;
-
-  const wrap = document.createElement('div');
-  wrap.className = 'edit-form';
-
-  const subjSel = document.createElement('select');
-  SUBJECTS.forEach(s => {
-    const o = document.createElement('option'); o.value = s; o.textContent = s;
-    if (s === entry.subject) o.selected = true;
-    subjSel.appendChild(o);
-  });
-
-  const titleIn = document.createElement('input');
-  titleIn.type = 'text'; titleIn.value = entry.title; titleIn.placeholder = 'Titel';
-
-  const dateIn = document.createElement('input');
-  dateIn.type = 'date'; dateIn.value = entry.due_date;
-
-  const descTa = document.createElement('textarea');
-  descTa.value = entry.description || ''; descTa.placeholder = 'Beschreibung (optional)';
-
-  const saveBtn = document.createElement('button'); saveBtn.textContent = 'Speichern'; saveBtn.style.marginRight='0.5em';
-  const cancelBtn = document.createElement('button'); cancelBtn.textContent = 'Abbrechen';
-
-  meta.innerHTML = '';
-  meta.append(
-    mkLabelWrap('Fach', subjSel),
-    mkLabelWrap('Fällig', dateIn)
-  );
-
-  body.innerHTML = '';
-  body.append(
-    mkLabelWrap('Titel', titleIn),
-    mkLabelWrap('Beschreibung', descTa),
-    saveBtn, cancelBtn
-  );
-
-  // während Edit: nur Checkbox aktiv lassen
-  [...controls.children].forEach(ch => {
-    if (ch !== controls.firstChild) ch.style.display = 'none';
-  });
-
-  cancelBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    body.innerHTML = original;
-    meta.innerHTML = originalMeta;
-    [...controls.children].forEach(ch => ch.style.removeProperty('display'));
-  });
-
-  saveBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const payload = {
-      subject: subjSel.value,
-      title: titleIn.value.trim(),
-      due_date: dateIn.value,
-      description: descTa.value.trim()
-    };
-    if (!payload.subject || !payload.title || !payload.due_date) {
-      alert('Bitte Fach, Titel und Datum angeben.');
-      return;
-    }
-    const { error } = await supabase
-      .from('student_tasks')
-      .update(payload)
-      .eq('id', entry.id);
-    if (error) {
-      alert('Speichern fehlgeschlagen: ' + error.message);
-    } else {
-      loadTasks();
-    }
-  });
-}
-
-function mkLabelWrap(label, el) {
-  const wrap = document.createElement('div');
-  wrap.style.margin = '0 0 0.5em 0';
-  const l = document.createElement('div');
-  l.style.fontWeight = '600';
-  l.style.fontSize = '0.9rem';
-  l.textContent = label;
-  wrap.append(l, el);
-  return wrap;
-}
-
-/* ===== Helpers ===== */
-function isoDate(d) {
-  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().split('T')[0];
-}
-function humanDate(yyyy_mm_dd) {
-  const [y,m,d] = String(yyyy_mm_dd).split('-');
-  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  return parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
-}
-function placeByDate(li, dueISO, done, todayISO) {
-  if (done) { listDone.appendChild(li); return; }
-  if (String(dueISO) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); return; }
-  if (String(dueISO) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); return; }
-  listAll.appendChild(li);
+  if (entry.done) listDone.appendChild(li);
+  else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
+  else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
+  else                                          { listAll.appendChild(li); }
 }
 
 /* ===== Neues SuS-Item (privat) ===== */
@@ -308,6 +237,9 @@ form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
+
+  const { data: usr } = await supabase.auth.getUser();
+  if (!usr?.user?.id) { alert('Nicht eingeloggt.'); return; }
 
   const { error } = await supabase
     .from('student_tasks')
