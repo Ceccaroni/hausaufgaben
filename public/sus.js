@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' } // Schema "app"
+  db: { schema: 'app' } // wichtig: wir arbeiten im Schema "app"
 });
 
 /* ===== DOM ===== */
@@ -16,15 +16,14 @@ const subjI     = document.getElementById('task-subject');
 const titleI    = document.getElementById('task-title');
 const dateI     = document.getElementById('task-date');
 const descI     = document.getElementById('task-desc');
-const fileNames = document.getElementById('file-names'); // aktuell ungenutzt
 
 const sectionHeute    = document.getElementById('heute');
 const sectionAlle     = document.getElementById('alle');
 const sectionErledigt = document.getElementById('erledigt');
 
-const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(sectionHeute, 'task-list-today');
-const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
-const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
+const listToday = sectionHeute.querySelector('#task-list-today')   || mkList(sectionHeute,    'task-list-today');
+const listAll   = sectionAlle.querySelector('#task-list-all')      || mkList(sectionAlle,     'task-list-all');
+const listDone  = sectionErledigt.querySelector('#task-list-done') || mkList(sectionErledigt, 'task-list-done');
 
 function mkList(sectionEl, id) {
   const ul = document.createElement('ul');
@@ -33,6 +32,12 @@ function mkList(sectionEl, id) {
   sectionEl.appendChild(ul);
   return ul;
 }
+
+/* Für Edit-Auswahl */
+const SUBJECTS = [
+  'BG','Deutsch','Englisch','ERG','Französisch','HW','Italienisch','IVE',
+  'Mathematik','MI','NT','RZG','TG/XG','WAH'
+];
 
 /* ===== Login (Schülerin) ===== */
 async function requireStudent() {
@@ -51,18 +56,22 @@ async function requireStudent() {
 /* ===== Laden & Rendern ===== */
 async function loadTasks() {
   clearLists();
-  const todayISO = new Date().toISOString().split('T')[0];
+  const todayISO = isoDate(new Date());
 
-  // 1) Öffentliche Lehrer-Aufgaben (read-only)
+  // 1) Lehrer-Aufgaben (read-only)
   const { data: admins, error: e1 } = await supabase
     .from('admin_tasks')
     .select('*')
     .order('due_date', { ascending: true });
 
-  if (e1) { console.error(e1); alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message); }
-  else { (admins || []).forEach(entry => renderAdminEntry(entry, todayISO)); }
+  if (e1) {
+    console.error(e1);
+    alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message);
+  } else {
+    (admins || []).forEach(entry => renderAdminEntry(entry, todayISO));
+  }
 
-  // 2) Eigene SuS-Aufgaben (privat)
+  // 2) Eigene SuS-Aufgaben
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id;
   if (uid) {
@@ -72,8 +81,12 @@ async function loadTasks() {
       .eq('user_id', uid)
       .order('due_date', { ascending: true });
 
-    if (e2) { console.error(e2); alert('Fehler beim Laden (eigene Aufgaben): ' + e2.message); }
-    else { (mine || []).forEach(entry => renderStudentEntry(entry, todayISO)); }
+    if (e2) {
+      console.error(e2);
+      alert('Fehler beim Laden (eigene Aufgaben): ' + e2.message);
+    } else {
+      (mine || []).forEach(entry => renderStudentEntry(entry, todayISO));
+    }
   }
 
   toggleHeadings();
@@ -89,15 +102,12 @@ function toggleHeadings() {
 
 /* ===== Render: Admin-Task (read-only) ===== */
 function renderAdminEntry(entry, todayISO) {
-  const li = document.createElement('li'); 
-  li.className='task';
+  const li = document.createElement('li'); li.className='task';
   const header = document.createElement('div'); header.className='task-header';
 
   const meta = document.createElement('div'); meta.className='meta';
   const dateEl = document.createElement('span'); dateEl.className='date';
-  const [y,m,d] = String(entry.due_date).split('-');
-  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  dateEl.textContent = parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
+  dateEl.textContent = humanDate(entry.due_date);
   const subjEl = document.createElement('span'); subjEl.className='subject'; subjEl.textContent = entry.subject;
   meta.append(dateEl, subjEl);
 
@@ -117,24 +127,17 @@ function renderAdminEntry(entry, todayISO) {
   header.append(meta, content, controls);
   li.append(header);
 
-  if (entry.done) listDone.appendChild(li);
-  else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
-  else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
-  else                                          { listAll.appendChild(li); }
+  placeByDate(li, entry.due_date, entry.done, todayISO);
 }
 
-/* ===== Render: eigene SuS-Task (bearbeitbar/löschbar) ===== */
+/* ===== Render: eigene SuS-Task (editierbar + löschbar) ===== */
 function renderStudentEntry(entry, todayISO) {
-  const li = document.createElement('li'); 
-  li.className='task';
-  li.classList.add('own');                 // << Markiere als "eigene" Aufgabe (für CSS)
+  const li = document.createElement('li'); li.className='task';
   const header = document.createElement('div'); header.className='task-header';
 
   const meta = document.createElement('div'); meta.className='meta';
   const dateEl = document.createElement('span'); dateEl.className='date';
-  const [y,m,d] = String(entry.due_date).split('-');
-  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  dateEl.textContent = parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
+  dateEl.textContent = humanDate(entry.due_date);
   const subjEl = document.createElement('span'); subjEl.className='subject'; subjEl.textContent = entry.subject;
   meta.append(dateEl, subjEl);
 
@@ -152,33 +155,152 @@ function renderStudentEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    const { error } = await supabase.from('student_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    const { error } = await supabase
+      .from('student_tasks')
+      .update({ done: chk.checked })
+      .eq('id', entry.id);
     if (error) alert('Konnte Status nicht speichern: ' + error.message);
-    loadTasks();
+    else loadTasks();
   });
   controls.append(chk);
 
+  // Edit-Button (✏️)
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-button';
+  editBtn.title = 'Aufgabe bearbeiten';
+  editBtn.textContent = '✏️';
+  editBtn.addEventListener('click', () => startEdit(entry, li));
+  controls.append(editBtn);
+
   // Trash (löschen erlaubt)
   const del = document.createElement('button');
-  del.className='trash-button';
-  del.innerHTML='🗑️';
-  del.title='Aufgabe löschen';
-  del.style.display = 'inline-flex';       // << sicht-/klickbar trotz Default "display:none"
+  del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
     const { error } = await supabase.from('student_tasks').delete().eq('id', entry.id);
     if (error) alert('Löschen fehlgeschlagen: ' + error.message);
-    loadTasks();
+    else loadTasks();
   });
   controls.append(del);
 
   header.append(meta, content, controls);
   li.append(header);
 
-  if (entry.done) listDone.appendChild(li);
-  else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
-  else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
-  else                                          { listAll.appendChild(li); }
+  placeByDate(li, entry.due_date, entry.done, todayISO);
+}
+
+/* ===== Inline-Edit für eigene SuS-Tasks ===== */
+function startEdit(entry, li) {
+  // bereits im Edit? -> ignorieren
+  if (li.querySelector('.edit-form')) return;
+
+  const body = li.querySelector('.content');
+  const meta = li.querySelector('.meta');
+  const controls = li.querySelector('.controls');
+
+  // Original sichern (für Cancel)
+  const original = body.innerHTML;
+  const originalMeta = meta.innerHTML;
+
+  // Form bauen
+  const wrap = document.createElement('div');
+  wrap.className = 'edit-form';
+
+  const subjSel = document.createElement('select');
+  SUBJECTS.forEach(s => {
+    const o = document.createElement('option'); o.value = s; o.textContent = s;
+    if (s === entry.subject) o.selected = true;
+    subjSel.appendChild(o);
+  });
+
+  const titleIn = document.createElement('input');
+  titleIn.type = 'text'; titleIn.value = entry.title; titleIn.placeholder = 'Titel';
+
+  const dateIn = document.createElement('input');
+  dateIn.type = 'date'; dateIn.value = entry.due_date;
+
+  const descTa = document.createElement('textarea');
+  descTa.value = entry.description || ''; descTa.placeholder = 'Beschreibung (optional)';
+
+  // kleine Buttons
+  const saveBtn = document.createElement('button'); saveBtn.textContent = 'Speichern';
+  saveBtn.style.marginRight = '0.5em';
+  const cancelBtn = document.createElement('button'); cancelBtn.textContent = 'Abbrechen';
+
+  // Meta ersetzen (Datum + Fach editierbar anzeigen)
+  meta.innerHTML = '';
+  meta.append(
+    mkLabelWrap('Fach', subjSel),
+    mkLabelWrap('Fällig', dateIn)
+  );
+
+  // Content ersetzen
+  body.innerHTML = '';
+  body.append(
+    mkLabelWrap('Titel', titleIn),
+    mkLabelWrap('Beschreibung', descTa),
+    saveBtn, cancelBtn
+  );
+
+  // Controls während Edit sperren (Checkbox/Trash ausblenden)
+  [...controls.children].forEach(ch => { if (ch !== controls.firstChild) ch.style.display = 'none'; });
+
+  cancelBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    body.innerHTML = original;
+    meta.innerHTML = originalMeta;
+    [...controls.children].forEach(ch => ch.style.removeProperty('display'));
+  });
+
+  saveBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const payload = {
+      subject: subjSel.value,
+      title: titleIn.value.trim(),
+      due_date: dateIn.value,
+      description: descTa.value.trim()
+    };
+    if (!payload.subject || !payload.title || !payload.due_date) {
+      alert('Bitte Fach, Titel und Datum angeben.');
+      return;
+    }
+    const { error } = await supabase
+      .from('student_tasks')
+      .update(payload)
+      .eq('id', entry.id);
+    if (error) {
+      alert('Speichern fehlgeschlagen: ' + error.message);
+    } else {
+      loadTasks();
+    }
+  });
+}
+
+function mkLabelWrap(label, el) {
+  const wrap = document.createElement('div');
+  wrap.style.margin = '0 0 0.5em 0';
+  const l = document.createElement('div');
+  l.style.fontWeight = '600';
+  l.style.fontSize = '0.9rem';
+  l.textContent = label;
+  wrap.append(l, el);
+  return wrap;
+}
+
+/* ===== Helpers ===== */
+function isoDate(d) {
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().split('T')[0];
+}
+function humanDate(yyyy_mm_dd) {
+  const [y,m,d] = String(yyyy_mm_dd).split('-');
+  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  return parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
+}
+function placeByDate(li, dueISO, done, todayISO) {
+  if (done) { listDone.appendChild(li); return; }
+  if (String(dueISO) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); return; }
+  if (String(dueISO) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); return; }
+  listAll.appendChild(li);
 }
 
 /* ===== Neues SuS-Item (privat) ===== */
@@ -187,8 +309,10 @@ form?.addEventListener('submit', async (e) => {
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  const { error } = await supabase.from('student_tasks')
+  const { error } = await supabase
+    .from('student_tasks')
     .insert([{ subject, title, description, due_date, done:false }]);
+
   if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
 
   form.reset();
