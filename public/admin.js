@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' } // << wichtig: auf Schema "app" umstellen
+  db: { schema: 'app' }
 });
 
 /* ===== DOM ===== */
@@ -33,19 +33,20 @@ function mkList(sectionEl, id) {
   return ul;
 }
 
-/* ===== Login (Admin) ===== */
+/* ===== Admin Login ===== */
 async function requireAdmin() {
   const { data } = await supabase.auth.getUser();
   if (data.user) return data.user;
-
   const email = prompt('Admin E-Mail:');
   const password = prompt('Admin Passwort:');
   if (!email || !password) throw new Error('Login abgebrochen');
-
   const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) { alert('Login fehlgeschlagen: ' + error.message); throw error; }
   return signIn.user;
 }
+
+/* ===== State für Edit ===== */
+let editId = null;
 
 /* ===== Laden & Rendern (nur Admin-Tasks) ===== */
 async function loadTasks() {
@@ -53,7 +54,7 @@ async function loadTasks() {
   const todayISO = new Date().toISOString().split('T')[0];
 
   const { data, error } = await supabase
-    .from('admin_tasks')              // << ohne "app."
+    .from('admin_tasks')
     .select('*')
     .order('due_date', { ascending: true })
     .limit(1000);
@@ -94,7 +95,7 @@ function renderEntry(entry, todayISO) {
 
   const controls = document.createElement('div'); controls.className='controls';
 
-  // Done-Checkbox
+  // Done-Checkbox (globaler Admin-Status)
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
@@ -103,6 +104,22 @@ function renderEntry(entry, todayISO) {
     loadTasks();
   });
   controls.append(chk);
+
+  // Edit-Button (Admin darf seine Aufgaben bearbeiten)
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-button';
+  editBtn.textContent = '✏️';
+  editBtn.title = 'Aufgabe bearbeiten';
+  editBtn.addEventListener('click', () => {
+    editId = entry.id;
+    subjI.value  = entry.subject;
+    titleI.value = entry.title;
+    descI.value  = entry.description || '';
+    dateI.value  = String(entry.due_date);
+    form.scrollIntoView({ behavior: 'smooth' });
+    titleI.focus();
+  });
+  controls.append(editBtn);
 
   // Trash (Admin darf löschen)
   const del = document.createElement('button');
@@ -124,14 +141,23 @@ function renderEntry(entry, todayISO) {
   else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Neues Admin-Item ===== */
+/* ===== Neues Admin-Item / Bearbeiten ===== */
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  const { error } = await supabase.from('admin_tasks').insert([{ subject, title, description, due_date, done:false }]);
-  if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+  if (editId) {
+    const { error } = await supabase.from('admin_tasks')
+      .update({ subject, title, description, due_date })
+      .eq('id', editId);
+    if (error) { alert('Änderungen konnten nicht gespeichert werden: ' + error.message); return; }
+    editId = null;
+  } else {
+    const { error } = await supabase.from('admin_tasks')
+      .insert([{ subject, title, description, due_date, done:false }]);
+    if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+  }
 
   form.reset();
   await loadTasks();
