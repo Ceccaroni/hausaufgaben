@@ -1,7 +1,7 @@
 /* Datei: public/sus.js – als <script type="module" src="public/sus.js"> einbinden */
 
-const SUPABASE_URL = 'https://DEIN-PROJEKT.supabase.co';   // <- einsetzen
-const SUPABASE_ANON_KEY = 'ey...';                         // <- einsetzen
+const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';   // <- einsetzen
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';                         // <- einsetzen
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
