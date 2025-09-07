@@ -155,13 +155,6 @@
     </div>
   </div>
 
-  <!-- Seitentyp -->
-  <script>window.PAGE = 'sus';</script>
-
-  <!-- JavaScript -->
-  <script src="public/sus.js"></script>
-  <script src="public/style-settings-overlay.js"></script>
-
   <!-- Fade-In -->
   <script>
     window.addEventListener('DOMContentLoaded', () => {
@@ -177,13 +170,12 @@
     }
   </script>
 
-  <!-- Klick-Sound (korrekter Pfad) -->
-  <audio id="click-sound" src="assets/sounds/tap-tiny-wooden.mp3" preload="auto"></audio>
-  <!-- bleibt normales Script -->
-<script src="public/style-settings-overlay.js"></script>
+  <!-- Overlay-Logik (eine Quelle) -->
+  <script src="public/style-settings-overlay.js"></script>
 
-<!-- NEU: als Module laden -->
-<script type="module" src="public/sus.js"></script>
+  <!-- SuS-App als ES-Modul -->
+  <script type="module" src="public/sus.js"></script>
 
 </body>
 </html>
+
