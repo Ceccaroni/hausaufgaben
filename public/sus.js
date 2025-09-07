@@ -7,6 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
+const db = supabase.schema('app');
 
 /* ===== DOM ===== */
 const form      = document.getElementById('task-form');
@@ -52,20 +53,20 @@ async function loadTasks() {
   const todayISO = new Date().toISOString().split('T')[0];
 
   // 1) Öffentliche Lehrer-Aufgaben (read-only)
-  const { data: admins, error: e1 } = await supabase
-    .from('app.admin_tasks')
+  const { data: admins, error: e1 } = await db
+    .from('admin_tasks')
     .select('*')
     .order('due_date', { ascending: true });
 
   if (e1) { console.error(e1); alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message); }
-  else { (admins || []).forEach(entry => renderEntry(entry, todayISO, { own:false })); }
+  else { (admins || []).forEach(entry => renderEntry(entry, todayISO)); }
 
   // 2) Eigene SuS-Aufgaben (privat)
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id;
   if (uid) {
-    const { data: mine, error: e2 } = await supabase
-      .from('app.student_tasks')
+    const { data: mine, error: e2 } = await db
+      .from('student_tasks')
       .select('*')
       .eq('user_id', uid)
       .order('due_date', { ascending: true });
@@ -147,7 +148,7 @@ function renderStudentEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    const { error } = await supabase.from('app.student_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    const { error } = await db.from('student_tasks').update({ done: chk.checked }).eq('id', entry.id);
     if (error) alert('Konnte Status nicht speichern: ' + error.message);
     loadTasks();
   });
@@ -158,37 +159,11 @@ function renderStudentEntry(entry, todayISO) {
   del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
-    const { error } = await supabase.from('app.student_tasks').delete().eq('id', entry.id);
+    const { error } = await db.from('student_tasks').delete().eq('id', entry.id);
     if (error) alert('Löschen fehlgeschlagen: ' + error.message);
     loadTasks();
   });
   controls.append(del);
 
   header.append(meta, content, controls);
-  li.append(header);
-
-  if (entry.done) listDone.appendChild(li);
-  else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
-  else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
-  else                                          { listAll.appendChild(li); }
-}
-
-/* ===== Neues SuS-Item (privat) ===== */
-form?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
-  if (!subject || !title || !due_date) return;
-
-  // user_id wird via Trigger gesetzt; du kannst ihn auch explizit setzen.
-  const { error } = await supabase.from('app.student_tasks').insert([{ subject, title, description, due_date, done:false }]);
-  if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
-
-  form.reset();
-  await loadTasks();
-});
-
-/* ===== Start ===== */
-(async () => {
-  try { await requireStudent(); await loadTasks(); }
-  catch (e) { console.error(e); }
-})();
+  li.append
