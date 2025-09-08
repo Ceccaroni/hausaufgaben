@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' }
+  db: { schema: 'app' } // wir arbeiten im Schema "app"
 });
 
 /* ===== DOM ===== */
@@ -24,6 +24,12 @@ const sectionErledigt = document.getElementById('erledigt');
 const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(sectionHeute, 'task-list-today');
 const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
 const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
+
+/* Submit-Button referenzieren, damit wir die Beschriftung bei Edit ändern */
+const submitBtn = form?.querySelector('button[type="submit"]');
+
+/* ===== interner Edit-Status ===== */
+let editId = null; // wenn gesetzt, wird UPDATE statt INSERT gemacht
 
 function mkList(sectionEl, id) {
   const ul = document.createElement('ul');
@@ -52,11 +58,11 @@ async function loadTasks() {
   clearLists();
   const todayISO = new Date().toISOString().split('T')[0];
 
-  // Aktuellen User holen
+  // Aktuellen User
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id || null;
 
-  // 1) Alle Admin-Aufgaben laden
+  // 1) Admin-Aufgaben
   const { data: admins, error: e1 } = await supabase
     .from('admin_tasks')
     .select('*')
@@ -67,7 +73,7 @@ async function loadTasks() {
     alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message);
   }
 
-  // 1b) Eigene Statuszeilen zu Admin-Aufgaben laden (done pro Schülerin)
+  // 1b) eigener Erledigt-Status zu Admin-Aufgaben laden
   let statusMap = new Map();
   if (uid && admins?.length) {
     const ids = admins.map(a => a.id);
@@ -77,20 +83,17 @@ async function loadTasks() {
       .eq('user_id', uid)
       .in('task_id', ids);
 
-    if (eStatus) {
-      console.error(eStatus);
-    } else {
-      (statusRows || []).forEach(r => statusMap.set(r.task_id, !!r.done));
+    if (!eStatus && statusRows) {
+      statusRows.forEach(r => statusMap.set(r.task_id, !!r.done));
     }
   }
 
-  // Admin-Aufgaben rendern (Checkbox aktiv für eigene Erledigt-Markierung)
   (admins || []).forEach(entry => {
     const doneForMe = statusMap.get(entry.id) || false;
     renderAdminEntry(entry, todayISO, doneForMe, uid);
   });
 
-  // 2) Eigene SuS-Aufgaben (privat)
+  // 2) Eigene SuS-Aufgaben
   if (uid) {
     const { data: mine, error: e2 } = await supabase
       .from('student_tasks')
@@ -140,26 +143,16 @@ function renderAdminEntry(entry, todayISO, doneForMe, uid) {
 
   const controls = document.createElement('div'); controls.className='controls';
 
-  // Done-Checkbox (aktiv: speichert in app.admin_task_status per upsert)
+  // Done-Checkbox -> admin_task_status upsert (pro Schülerin)
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!doneForMe; chk.disabled = !uid;
   chk.addEventListener('change', async () => {
     if (!uid) return;
-
     const payload = { task_id: entry.id, user_id: uid, done: chk.checked };
-    // Voraussetzung: UNIQUE (task_id, user_id) auf app.admin_task_status
     const { error } = await supabase
       .from('admin_task_status')
       .upsert(payload, { onConflict: 'task_id,user_id' });
-
-    if (error) {
-      alert('Konnte Status nicht speichern: ' + error.message);
-      // UI zurücksetzen, wenn fehlgeschlagen
-      chk.checked = !chk.checked;
-      return;
-    }
-
-    // Nach erfolgreichem Speichern UI neu aufbauen (verschiebt Karte zwischen Listen)
+    if (error) { alert('Konnte Status nicht speichern: ' + error.message); chk.checked = !chk.checked; return; }
     await loadTasks();
   });
   controls.append(chk);
@@ -167,19 +160,13 @@ function renderAdminEntry(entry, todayISO, doneForMe, uid) {
   header.append(meta, content, controls);
   li.append(header);
 
-  // Platzierung in Listen basierend auf doneForMe
-  if (doneForMe) {
-    listDone.appendChild(li);
-  } else if (String(entry.due_date) === todayISO) {
-    li.classList.add('due-today'); listToday.appendChild(li);
-  } else if (String(entry.due_date) < todayISO) {
-    li.classList.add('overdue');   listAll.appendChild(li);
-  } else {
-    listAll.appendChild(li);
-  }
+  if (doneForMe) listDone.appendChild(li);
+  else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
+  else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
+  else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Render: eigene SuS-Task (bearbeitbar/löschbar) ===== */
+/* ===== Render: eigene SuS-Task (editierbar & löschbar) ===== */
 function renderStudentEntry(entry, todayISO) {
   const li = document.createElement('li'); li.className='task';
   const header = document.createElement('div'); header.className='task-header';
@@ -212,9 +199,34 @@ function renderStudentEntry(entry, todayISO) {
   });
   controls.append(chk);
 
+  // Edit-Button (✏️)
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-button';
+  editBtn.textContent = '✏️';
+  // CSS überschreiben: sicher anzeigen
+  editBtn.style.display = 'inline-flex';
+  editBtn.title = 'Aufgabe bearbeiten';
+  editBtn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    // Edit-Modus aktivieren
+    editId = entry.id;
+    subjI.value  = entry.subject || '';
+    titleI.value = entry.title   || '';
+    dateI.value  = entry.due_date || '';
+    descI.value  = entry.description || '';
+    if (submitBtn) submitBtn.textContent = 'Speichern';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    titleI.focus();
+  });
+  controls.append(editBtn);
+
   // Trash (löschen erlaubt)
   const del = document.createElement('button');
-  del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
+  del.className='trash-button';
+  del.innerHTML='🗑️';
+  del.title='Aufgabe löschen';
+  // CSS überschreiben: sicher anzeigen
+  del.style.display = 'inline-flex';
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
     const { error } = await supabase.from('student_tasks').delete().eq('id', entry.id);
@@ -232,20 +244,32 @@ function renderStudentEntry(entry, todayISO) {
   else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Neues SuS-Item (privat) ===== */
+/* ===== Neues SuS-Item ODER Update (privat) ===== */
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  const { data: usr } = await supabase.auth.getUser();
-  if (!usr?.user?.id) { alert('Nicht eingeloggt.'); return; }
+  if (editId) {
+    // UPDATE
+    const { error } = await supabase
+      .from('student_tasks')
+      .update({ subject, title, description, due_date })
+      .eq('id', editId);
 
-  const { error } = await supabase
-    .from('student_tasks')
-    .insert([{ subject, title, description, due_date, done:false }]);
+    if (error) { alert('Speichern (Update) fehlgeschlagen: ' + error.message); return; }
 
-  if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+    // Edit-Modus verlassen
+    editId = null;
+    if (submitBtn) submitBtn.textContent = 'Hinzufügen';
+  } else {
+    // INSERT
+    const { error } = await supabase
+      .from('student_tasks')
+      .insert([{ subject, title, description, due_date, done:false }]);
+
+    if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+  }
 
   form.reset();
   await loadTasks();
