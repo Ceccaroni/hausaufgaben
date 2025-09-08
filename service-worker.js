@@ -1,7 +1,7 @@
 // Datei: service-worker.js
 // Robuster SW mit Versionierung, gezieltem Caching und sauberem Upgrade
 
-const CACHE_NAME = 'hausaufgaben-v6';
+const CACHE_NAME = 'hausaufgaben-v7';
 
 // Nur die wirklich zentralen, stabilen Assets vorab cachen.
 // (Fehlende Dateien brechen die Installation NICHT ab.)
