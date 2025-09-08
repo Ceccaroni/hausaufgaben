@@ -474,3 +474,34 @@ main {
 .theme-lavendel-neutral ::-webkit-scrollbar { width: 8px; }
 .theme-lavendel-neutral ::-webkit-scrollbar-thumb { background-color: #CBC1D5; border-radius: 4px; }
 .theme-lavendel-neutral .task-form button, .theme-lavendel-neutral .download-btn { background: #7D6B91; color: #FFFFFF; }
+
+/* --- Mobile: Formular-Felder vollflächig --- */
+@media (max-width: 640px) {
+  .form-container { padding-inline: 12px; }
+
+  .task-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 100%;
+  }
+
+  /* alle direkten Formular-Elemente auf volle Breite */
+  .task-form > * {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-width: 0;           /* verhindert Überlauf in iOS Safari */
+  }
+
+  .task-form select,
+  .task-form input[type="text"],
+  .task-form input[type="date"],
+  .task-form textarea {
+    width: 100%;
+  }
+
+  .task-form .file-label { width: 100%; }
+  .task-form button { width: 100%; }  /* falls Button auch volle Breite soll */
+}
+
