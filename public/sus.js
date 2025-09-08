@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db:   { schema: 'app' }
+  db: { schema: 'app' }
 });
 
 /* ===== DOM ===== */
@@ -25,13 +25,12 @@ const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(se
 const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
 const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
 
-/* Submit-Button (für „Hinzufügen“ ⇄ „Speichern“) */
+/* Submit-Button, damit wir die Beschriftung im Edit-Modus umstellen */
 const submitBtn = form?.querySelector('button[type="submit"]');
 
 /* Edit-Status: wenn gesetzt → UPDATE statt INSERT */
 let editId = null;
 
-/* ===== Helpers ===== */
 function mkList(sectionEl, id) {
   const ul = document.createElement('ul');
   ul.className = 'task-list';
@@ -40,30 +39,18 @@ function mkList(sectionEl, id) {
   return ul;
 }
 
-function clearLists() {
-  listToday.innerHTML = '';
-  listAll.innerHTML   = '';
-  listDone.innerHTML  = '';
-}
-
-function toggleHeadings() {
-  document.getElementById('heute-title')   ?.classList.toggle('visually-hidden', listToday.children.length === 0);
-  document.getElementById('alle-title')    ?.classList.toggle('visually-hidden',  listAll.children.length   === 0);
-  document.getElementById('erledigt-title')?.classList.toggle('visually-hidden',  listDone.children.length  === 0);
-}
-
-/** Login nur bei Bedarf (kein Pop-up beim Seitenstart) */
-async function ensureLogin() {
-  const { data: sess } = await supabase.auth.getSession();
-  if (sess?.session?.user) return sess.session.user;
+/* ===== Login (Schülerin) ===== */
+async function requireStudent() {
+  const { data } = await supabase.auth.getUser();
+  if (data.user) return data.user;
 
   const email = prompt('E-Mail (Schülerin):');
   const password = prompt('Passwort:');
   if (!email || !password) throw new Error('Login abgebrochen');
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) { alert('Login fehlgeschlagen: ' + error.message); throw error; }
-  return data.user;
+  return signIn.user;
 }
 
 /* ===== Laden & Rendern ===== */
@@ -75,7 +62,7 @@ async function loadTasks() {
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id || null;
 
-  // 1) Admin-Aufgaben (read-only sichtbar; per User abhakbar über Status-Tabelle)
+  // 1) Admin-Aufgaben (read-only, aber pro Schülerin „done“ speicherbar)
   const { data: admins, error: e1 } = await supabase
     .from('admin_tasks')
     .select('*')
@@ -95,7 +82,6 @@ async function loadTasks() {
       .select('task_id, done')
       .eq('user_id', uid)
       .in('task_id', ids);
-
     if (!eStatus && statusRows) {
       statusRows.forEach(r => statusMap.set(r.task_id, !!r.done));
     }
@@ -103,10 +89,10 @@ async function loadTasks() {
 
   (admins || []).forEach(entry => {
     const doneForMe = statusMap.get(entry.id) || false;
-    renderAdminEntry(entry, todayISO, doneForMe);
+    renderAdminEntry(entry, todayISO, doneForMe, uid);
   });
 
-  // 2) Eigene SuS-Aufgaben (nur wenn eingeloggt)
+  // 2) Eigene SuS-Aufgaben
   if (uid) {
     const { data: mine, error: e2 } = await supabase
       .from('student_tasks')
@@ -125,8 +111,20 @@ async function loadTasks() {
   toggleHeadings();
 }
 
+function clearLists() {
+  listToday.innerHTML = '';
+  listAll.innerHTML   = '';
+  listDone.innerHTML  = '';
+}
+
+function toggleHeadings() {
+  document.getElementById('heute-title').classList.toggle('visually-hidden', listToday.children.length === 0);
+  document.getElementById('alle-title').classList.toggle('visually-hidden',   listAll.children.length   === 0);
+  document.getElementById('erledigt-title').classList.toggle('visually-hidden', listDone.children.length=== 0);
+}
+
 /* ===== Render: Admin-Task (pro Schülerin abhakbar, sonst read-only) ===== */
-function renderAdminEntry(entry, todayISO, doneForMe) {
+function renderAdminEntry(entry, todayISO, doneForMe, uid) {
   const li = document.createElement('li'); li.className = 'task';
   const header = document.createElement('div'); header.className = 'task-header';
 
@@ -150,18 +148,13 @@ function renderAdminEntry(entry, todayISO, doneForMe) {
 
   // Done-Checkbox → admin_task_status upsert (task_id + user_id)
   const chk = document.createElement('input');
-  chk.type = 'checkbox'; chk.className = 'checkbox'; chk.checked = !!doneForMe;
+  chk.type = 'checkbox'; chk.className = 'checkbox'; chk.checked = !!doneForMe; chk.disabled = !uid;
   chk.addEventListener('change', async () => {
-    try {
-      const user = await ensureLogin(); // Login bei Bedarf
-      const payload = { task_id: entry.id, user_id: user.id, done: chk.checked };
-      const { error } = await supabase.from('admin_task_status').upsert(payload, { onConflict: 'task_id,user_id' });
-      if (error) throw error;
-      await loadTasks();
-    } catch (err) {
-      chk.checked = !chk.checked;
-      if (err?.message && err.message !== 'Login abgebrochen') alert('Konnte Status nicht speichern: ' + err.message);
-    }
+    if (!uid) return;
+    const payload = { task_id: entry.id, user_id: uid, done: chk.checked };
+    const { error } = await supabase.from('admin_task_status').upsert(payload, { onConflict: 'task_id,user_id' });
+    if (error) { alert('Konnte Status nicht speichern: ' + error.message); chk.checked = !chk.checked; return; }
+    await loadTasks();
   });
   controls.append(chk);
 
@@ -201,15 +194,9 @@ function renderStudentEntry(entry, todayISO) {
   const chk = document.createElement('input');
   chk.type = 'checkbox'; chk.className = 'checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    try {
-      await ensureLogin();
-      const { error } = await supabase.from('student_tasks').update({ done: chk.checked }).eq('id', entry.id);
-      if (error) throw error;
-      await loadTasks();
-    } catch (err) {
-      chk.checked = !chk.checked;
-      if (err?.message && err.message !== 'Login abgebrochen') alert('Konnte Status nicht speichern: ' + err.message);
-    }
+    const { error } = await supabase.from('student_tasks').update({ done: chk.checked }).eq('id', entry.id);
+    if (error) { alert('Konnte Status nicht speichern: ' + error.message); chk.checked = !chk.checked; return; }
+    await loadTasks();
   });
   controls.append(chk);
 
@@ -218,20 +205,18 @@ function renderStudentEntry(entry, todayISO) {
   editBtn.className = 'edit-button';
   editBtn.textContent = '✏️';
   editBtn.title = 'Aufgabe bearbeiten';
-  editBtn.style.setProperty('display', 'inline-flex', 'important');   // Icon sicher sichtbar
-  editBtn.addEventListener('click', async (ev) => {
+  // Sichtbarkeit sicherstellen (überschreibt CSS)
+  editBtn.style.setProperty('display', 'inline-flex', 'important');
+  editBtn.addEventListener('click', (ev) => {
     ev.preventDefault();
-    try {
-      await ensureLogin();
-      editId = entry.id;
-      subjI.value  = entry.subject || '';
-      titleI.value = entry.title   || '';
-      dateI.value  = entry.due_date || '';
-      descI.value  = entry.description || '';
-      if (submitBtn) submitBtn.textContent = 'Speichern';
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      titleI.focus();
-    } catch {}
+    editId = entry.id;
+    subjI.value  = entry.subject || '';
+    titleI.value = entry.title   || '';
+    dateI.value  = entry.due_date || '';
+    descI.value  = entry.description || '';
+    if (submitBtn) submitBtn.textContent = 'Speichern';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    titleI.focus();
   });
   controls.append(editBtn);
 
@@ -240,17 +225,13 @@ function renderStudentEntry(entry, todayISO) {
   del.className = 'trash-button';
   del.innerHTML = '🗑️';
   del.title = 'Aufgabe löschen';
-  del.style.setProperty('display', 'inline-flex', 'important');       // Icon sicher sichtbar
+  // Sichtbarkeit sicherstellen (überschreibt CSS)
+  del.style.setProperty('display', 'inline-flex', 'important');
   del.addEventListener('click', async () => {
-    try {
-      await ensureLogin();
-      if (!confirm('Eintrag wirklich löschen?')) return;
-      const { error } = await supabase.from('student_tasks').delete().eq('id', entry.id);
-      if (error) throw error;
-      await loadTasks();
-    } catch (err) {
-      if (err?.message && err.message !== 'Login abgebrochen') alert('Löschen fehlgeschlagen: ' + err.message);
-    }
+    if (!confirm('Eintrag wirklich löschen?')) return;
+    const { error } = await supabase.from('student_tasks').delete().eq('id', entry.id);
+    if (error) { alert('Löschen fehlgeschlagen: ' + error.message); return; }
+    await loadTasks();
   });
   controls.append(del);
 
@@ -263,49 +244,48 @@ function renderStudentEntry(entry, todayISO) {
   else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Neues SuS-Item ODER Update (Login nur bei Bedarf) ===== */
+/* ===== Neues SuS-Item ODER Update ===== */
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
-
-  const subject     = subjI.value;
-  const title       = titleI.value.trim();
-  const due_date    = dateI.value;
+  const subject = subjI.value;
+  const title   = titleI.value.trim();
+  const due_date = dateI.value;
   const description = descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  try {
-    const user = await ensureLogin(); // nur hier ggf. Pop-up
+  // aktuelle user_id explizit mitschreiben (keine Trigger nötig)
+  const { data: usr } = await supabase.auth.getUser();
+  const uid = usr?.user?.id;
+  if (!uid) { alert('Nicht eingeloggt.'); return; }
 
-    if (editId) {
-      // UPDATE
-      const { error } = await supabase
-        .from('student_tasks')
-        .update({ subject, title, description, due_date })
-        .match({ id: editId, user_id: user.id });
+  if (editId) {
+    // UPDATE
+    const { error } = await supabase
+      .from('student_tasks')
+      .update({ subject, title, description, due_date })
+      .match({ id: editId, user_id: uid });
 
-      if (error) throw error;
+    if (error) { alert('Speichern (Update) fehlgeschlagen: ' + error.message); return; }
 
-      editId = null;
-      if (submitBtn) submitBtn.textContent = 'Hinzufügen';
-    } else {
-      // INSERT
-      const { error } = await supabase
-        .from('student_tasks')
-        .insert([{ user_id: user.id, subject, title, description, due_date, done: false }]);
+    editId = null;
+    if (submitBtn) submitBtn.textContent = 'Hinzufügen';
+  } else {
+    // INSERT
+    const { error } = await supabase
+      .from('student_tasks')
+      .insert([{ user_id: uid, subject, title, description, due_date, done: false }]);
 
-      if (error) throw error;
-    }
-
-    form.reset();
-    await loadTasks();
-  } catch (err) {
-    if (err?.message && err.message !== 'Login abgebrochen') alert('Speichern fehlgeschlagen: ' + err.message);
+    if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
   }
+
+  form.reset();
+  await loadTasks();
 });
 
-/* ===== Start: KEIN automatisches Login-Prompt ===== */
+/* ===== Start ===== */
 (async () => {
   try {
+    await requireStudent();
     await loadTasks();
   } catch (e) {
     console.error(e);
