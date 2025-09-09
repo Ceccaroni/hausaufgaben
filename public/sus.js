@@ -1,4 +1,4 @@
-/* Datei: public/sus.js – als <script type="module" src="public/sus.js"> einbinden */
+/* Datei: public/sus.js – als <script type="module" src="public/sus.js?v=global-done-rt-1"> einbinden */
 
 const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
@@ -7,29 +7,32 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' }
+  db:   { schema: 'app' }
 });
 
 /* ===== DOM ===== */
-const form      = document.getElementById('task-form');
-const subjI     = document.getElementById('task-subject');
-const titleI    = document.getElementById('task-title');
-const dateI     = document.getElementById('task-date');
-const descI     = document.getElementById('task-desc');
+const form   = document.getElementById('task-form');
+const subjI  = document.getElementById('task-subject');
+const titleI = document.getElementById('task-title');
+const dateI  = document.getElementById('task-date');
+const descI  = document.getElementById('task-desc');
 
 const sectionHeute    = document.getElementById('heute');
 const sectionAlle     = document.getElementById('alle');
 const sectionErledigt = document.getElementById('erledigt');
 
-const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(sectionHeute, 'task-list-today');
-const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
-const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
+const listToday = sectionHeute.querySelector('#task-list-today')   || mkList(sectionHeute, 'task-list-today');
+const listAll   = sectionAlle.querySelector('#task-list-all')      || mkList(sectionAlle,  'task-list-all');
+const listDone  = sectionErledigt.querySelector('#task-list-done') || mkList(sectionErledigt, 'task-list-done');
 
 /* Submit-Button (Beschriftung im Edit-Modus umstellen) */
 const submitBtn = form?.querySelector('button[type="submit"]');
 
 /* Edit-Status: wenn gesetzt → UPDATE statt INSERT */
 let editId = null;
+
+/* Realtime-Channel Referenz (einmalig) */
+let rtChannel = null;
 
 function mkList(sectionEl, id) {
   const ul = document.createElement('ul');
@@ -53,7 +56,7 @@ async function requireStudent() {
   return signIn.user;
 }
 
-/* ===== Laden & Rendern ===== */
+/* ===== Daten laden & rendern ===== */
 async function loadTasks() {
   clearLists();
   const todayISO = new Date().toISOString().split('T')[0];
@@ -135,6 +138,7 @@ function renderAdminEntry(entry, todayISO) {
   chk.addEventListener('change', async () => {
     const { error } = await supabase.from('admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
     if (error) { alert('Konnte Status nicht speichern: ' + error.message); chk.checked = !chk.checked; return; }
+    // Kein reload nötig – Realtime aktualisiert Liste; als Fallback:
     await loadTasks();
   });
   controls.append(chk);
@@ -258,10 +262,36 @@ form?.addEventListener('submit', async (e) => {
   await loadTasks();
 });
 
+/* ===== Realtime: Admin + eigene SuS-Tasks ===== */
+function setupRealtime(userId) {
+  try { rtChannel?.unsubscribe(); } catch {}
+  rtChannel = supabase.channel('sus-realtime');
+
+  // Admin-Aufgaben (global) – Inserts/Updates/Deletes
+  rtChannel.on(
+    'postgres_changes',
+    { event: '*', schema: 'app', table: 'admin_tasks' },
+    () => loadTasks()
+  );
+
+  // Eigene SuS-Aufgaben (nur meine user_id)
+  if (userId) {
+    rtChannel.on(
+      'postgres_changes',
+      { event: '*', schema: 'app', table: 'student_tasks', filter: `user_id=eq.${userId}` },
+      () => loadTasks()
+    );
+  }
+
+  rtChannel.subscribe();
+}
+
 /* ===== Start ===== */
 (async () => {
   try {
     await requireStudent();
+    const { data: usr } = await supabase.auth.getUser();
+    setupRealtime(usr?.user?.id || null);
     await loadTasks();
   } catch (e) {
     console.error(e);
