@@ -1,4 +1,4 @@
-/* Datei: public/admin.js  – als <script type="module" src="public/admin.js?v=rt-1"> einbinden */
+/* Datei: public/admin.js  – als <script type="module" src="public/admin.js?v=teachers-any-1"> einbinden */
 
 const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' }
+  db: { schema: 'app' } // Schema vereinheitlicht
 });
 
 /* ===== DOM ===== */
@@ -25,6 +25,10 @@ const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(se
 const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
 const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
 
+/* Submit-Button (für Edit-Modus) */
+const submitBtn = form?.querySelector('button[type="submit"]');
+let editId = null;
+
 function mkList(sectionEl, id) {
   const ul = document.createElement('ul');
   ul.className = 'task-list';
@@ -33,7 +37,7 @@ function mkList(sectionEl, id) {
   return ul;
 }
 
-/* ===== Login (Admin) ===== */
+/* ===== Login (Admin/Teacher) ===== */
 async function requireAdmin() {
   const { data } = await supabase.auth.getUser();
   if (data.user) return data.user;
@@ -100,23 +104,34 @@ function renderEntry(entry, todayISO) {
 
   const controls = document.createElement('div'); controls.className='controls';
 
-  // Done-Checkbox
-  const chk = document.createElement('input');
-  chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
-  chk.addEventListener('change', async () => {
-    const { error } = await supabase.from('admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
-    if (error) alert('Konnte Status nicht speichern: ' + error.message);
-    loadTasks();
+  // ✏️ Bearbeiten
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-button';
+  editBtn.textContent = '✏️';
+  editBtn.title = 'Aufgabe bearbeiten';
+  editBtn.style.setProperty('display', 'inline-flex', 'important'); // falls CSS versteckt
+  editBtn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    editId = entry.id;
+    subjI.value  = entry.subject || '';
+    titleI.value = entry.title   || '';
+    dateI.value  = entry.due_date || '';
+    descI.value  = entry.description || '';
+    if (submitBtn) submitBtn.textContent = 'Speichern';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    titleI.focus();
   });
-  controls.append(chk);
+  controls.append(editBtn);
 
-  // 🗑️ Trash (gehärtet: genau 1 Zeile löschen)
+  // 🗑️ Löschen (gehärtet: genau 1 Zeile)
   const del = document.createElement('button');
-  del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
+  del.className='trash-button';
+  del.innerHTML='🗑️';
+  del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
     if (!confirm(`Eintrag „${entry.title}” wirklich löschen?`)) return;
 
-    // 1) Sicherheitsabfrage: existiert genau diese ID?
+    // 1) Prüfen: existiert genau diese ID?
     const { data: checkRows, error: checkErr } = await supabase
       .from('admin_tasks')
       .select('id')
@@ -134,7 +149,7 @@ function renderEntry(entry, todayISO) {
       .from('admin_tasks')
       .delete()
       .eq('id', entry.id)
-      .select('id'); // erzwingt Rückgabe der gelöschten Zeilen
+      .select('id'); // Rückgabe der gelöschten Zeilen
 
     if (delErr) { alert('Löschen fehlgeschlagen: ' + delErr.message); return; }
     if (!delRows || delRows.length !== 1) {
@@ -155,33 +170,34 @@ function renderEntry(entry, todayISO) {
   else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Realtime ===== */
-let chAdmin = null;
-
-function setupRealtime() {
-  if (chAdmin) supabase.removeChannel(chAdmin);
-
-  chAdmin = supabase
-    .channel('rt-admin-tasks')
-    .on('postgres_changes', { event: '*', schema: 'app', table: 'admin_tasks' }, () => {
-      // Jede Änderung → UI aktualisieren
-      loadTasks();
-    })
-    .subscribe();
-}
-
-window.addEventListener('beforeunload', () => {
-  if (chAdmin) supabase.removeChannel(chAdmin);
-});
-
-/* ===== Neues Admin-Item ===== */
+/* ===== Neues Admin-Item ODER Update ===== */
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
+  const subject = subjI.value;
+  const title   = titleI.value.trim();
+  const due_date = dateI.value;
+  const description = descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  const { error } = await supabase.from('admin_tasks').insert([{ subject, title, description, due_date, done:false }]);
-  if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+  if (editId) {
+    // UPDATE (alle Teacher dürfen – Policy geregelt)
+    const { error } = await supabase
+      .from('admin_tasks')
+      .update({ subject, title, description, due_date })
+      .eq('id', editId);
+
+    if (error) { alert('Speichern (Update) fehlgeschlagen: ' + error.message); return; }
+
+    editId = null;
+    if (submitBtn) submitBtn.textContent = 'Hinzufügen';
+  } else {
+    // INSERT
+    const { error } = await supabase
+      .from('admin_tasks')
+      .insert([{ subject, title, description, due_date, done: false }]);
+
+    if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
+  }
 
   form.reset();
   await loadTasks();
@@ -189,9 +205,6 @@ form?.addEventListener('submit', async (e) => {
 
 /* ===== Start ===== */
 (async () => {
-  try {
-    await requireAdmin();
-    await loadTasks();
-    setupRealtime();
-  } catch (e) { console.error(e); }
+  try { await requireAdmin(); await loadTasks(); }
+  catch (e) { console.error(e); }
 })();
