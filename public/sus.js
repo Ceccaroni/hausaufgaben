@@ -25,7 +25,7 @@ const listToday = sectionHeute.querySelector('#task-list-today')    || mkList(se
 const listAll   = sectionAlle.querySelector('#task-list-all')       || mkList(sectionAlle,  'task-list-all');
 const listDone  = sectionErledigt.querySelector('#task-list-done')  || mkList(sectionErledigt, 'task-list-done');
 
-/* Submit-Button, damit wir die Beschriftung im Edit-Modus umstellen */
+/* Submit-Button (Beschriftung im Edit-Modus umstellen) */
 const submitBtn = form?.querySelector('button[type="submit"]');
 
 /* Edit-Status: wenn gesetzt → UPDATE statt INSERT */
@@ -58,11 +58,11 @@ async function loadTasks() {
   clearLists();
   const todayISO = new Date().toISOString().split('T')[0];
 
-  // aktueller User
+  // aktueller User (für eigene SuS-Tasks)
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id || null;
 
-  // 1) Admin-Aufgaben (read-only, aber pro Schülerin „done“ speicherbar)
+  // 1) Admin-Aufgaben (global)
   const { data: admins, error: e1 } = await supabase
     .from('admin_tasks')
     .select('*')
@@ -71,26 +71,9 @@ async function loadTasks() {
   if (e1) {
     console.error(e1);
     alert('Fehler beim Laden (Admin-Aufgaben): ' + e1.message);
+  } else {
+    (admins || []).forEach(entry => renderAdminEntry(entry, todayISO));
   }
-
-  // individuellen Status zu Admin-Aufgaben laden
-  let statusMap = new Map();
-  if (uid && admins?.length) {
-    const ids = admins.map(a => a.id);
-    const { data: statusRows, error: eStatus } = await supabase
-      .from('admin_task_status')
-      .select('task_id, done')
-      .eq('user_id', uid)
-      .in('task_id', ids);
-    if (!eStatus && statusRows) {
-      statusRows.forEach(r => statusMap.set(r.task_id, !!r.done));
-    }
-  }
-
-  (admins || []).forEach(entry => {
-    const doneForMe = statusMap.get(entry.id) || false;
-    renderAdminEntry(entry, todayISO, doneForMe, uid);
-  });
 
   // 2) Eigene SuS-Aufgaben
   if (uid) {
@@ -123,8 +106,8 @@ function toggleHeadings() {
   document.getElementById('erledigt-title').classList.toggle('visually-hidden', listDone.children.length=== 0);
 }
 
-/* ===== Render: Admin-Task (pro Schülerin abhakbar, sonst read-only) ===== */
-function renderAdminEntry(entry, todayISO, doneForMe, uid) {
+/* ===== Render: Admin-Task (SuS darf globales "done" togglen) ===== */
+function renderAdminEntry(entry, todayISO) {
   const li = document.createElement('li'); li.className = 'task';
   const header = document.createElement('div'); header.className = 'task-header';
 
@@ -146,13 +129,11 @@ function renderAdminEntry(entry, todayISO, doneForMe, uid) {
 
   const controls = document.createElement('div'); controls.className = 'controls';
 
-  // Done-Checkbox → admin_task_status upsert (task_id + user_id)
+  // Done-Checkbox (GLOBAL): schreibt admin_tasks.done
   const chk = document.createElement('input');
-  chk.type = 'checkbox'; chk.className = 'checkbox'; chk.checked = !!doneForMe; chk.disabled = !uid;
+  chk.type = 'checkbox'; chk.className = 'checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
-    if (!uid) return;
-    const payload = { task_id: entry.id, user_id: uid, done: chk.checked };
-    const { error } = await supabase.from('admin_task_status').upsert(payload, { onConflict: 'task_id,user_id' });
+    const { error } = await supabase.from('admin_tasks').update({ done: chk.checked }).eq('id', entry.id);
     if (error) { alert('Konnte Status nicht speichern: ' + error.message); chk.checked = !chk.checked; return; }
     await loadTasks();
   });
@@ -161,7 +142,7 @@ function renderAdminEntry(entry, todayISO, doneForMe, uid) {
   header.append(meta, content, controls);
   li.append(header);
 
-  if (doneForMe) listDone.appendChild(li);
+  if (entry.done) listDone.appendChild(li);
   else if (String(entry.due_date) === todayISO) { li.classList.add('due-today'); listToday.appendChild(li); }
   else if (String(entry.due_date) <  todayISO)  { li.classList.add('overdue');   listAll.appendChild(li); }
   else                                          { listAll.appendChild(li); }
@@ -190,7 +171,7 @@ function renderStudentEntry(entry, todayISO) {
 
   const controls = document.createElement('div'); controls.className = 'controls';
 
-  // Done-Checkbox (editierbar)
+  // Done-Checkbox (privat)
   const chk = document.createElement('input');
   chk.type = 'checkbox'; chk.className = 'checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
@@ -205,7 +186,6 @@ function renderStudentEntry(entry, todayISO) {
   editBtn.className = 'edit-button';
   editBtn.textContent = '✏️';
   editBtn.title = 'Aufgabe bearbeiten';
-  // Sichtbarkeit sicherstellen (überschreibt CSS)
   editBtn.style.setProperty('display', 'inline-flex', 'important');
   editBtn.addEventListener('click', (ev) => {
     ev.preventDefault();
@@ -225,7 +205,6 @@ function renderStudentEntry(entry, todayISO) {
   del.className = 'trash-button';
   del.innerHTML = '🗑️';
   del.title = 'Aufgabe löschen';
-  // Sichtbarkeit sicherstellen (überschreibt CSS)
   del.style.setProperty('display', 'inline-flex', 'important');
   del.addEventListener('click', async () => {
     if (!confirm('Eintrag wirklich löschen?')) return;
@@ -253,13 +232,11 @@ form?.addEventListener('submit', async (e) => {
   const description = descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  // aktuelle user_id explizit mitschreiben (keine Trigger nötig)
   const { data: usr } = await supabase.auth.getUser();
   const uid = usr?.user?.id;
   if (!uid) { alert('Nicht eingeloggt.'); return; }
 
   if (editId) {
-    // UPDATE
     const { error } = await supabase
       .from('student_tasks')
       .update({ subject, title, description, due_date })
@@ -270,7 +247,6 @@ form?.addEventListener('submit', async (e) => {
     editId = null;
     if (submitBtn) submitBtn.textContent = 'Hinzufügen';
   } else {
-    // INSERT
     const { error } = await supabase
       .from('student_tasks')
       .insert([{ user_id: uid, subject, title, description, due_date, done: false }]);
