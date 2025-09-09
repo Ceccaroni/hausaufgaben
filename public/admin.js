@@ -1,13 +1,13 @@
-/* Datei: public/admin.js  – als <script type="module" src="public/admin.js"> einbinden */
+/* Datei: public/admin.js  – als <script type="module" src="public/admin.js?v=del-guard-1"> einbinden */
 
-const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
+const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';   // deine Werte beibehalten
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' }
+  db: { schema: 'app' } // Einheitlich: Schema "app"
 });
 
 /* ===== DOM ===== */
@@ -33,22 +33,21 @@ function mkList(sectionEl, id) {
   return ul;
 }
 
-/* ===== Admin Login ===== */
+/* ===== Login (Admin) ===== */
 async function requireAdmin() {
   const { data } = await supabase.auth.getUser();
   if (data.user) return data.user;
+
   const email = prompt('Admin E-Mail:');
   const password = prompt('Admin Passwort:');
   if (!email || !password) throw new Error('Login abgebrochen');
+
   const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) { alert('Login fehlgeschlagen: ' + error.message); throw error; }
   return signIn.user;
 }
 
-/* ===== State für Edit ===== */
-let editId = null;
-
-/* ===== Laden & Rendern (nur Admin-Tasks) ===== */
+/* ===== Laden & Rendern (Admin-Tasks) ===== */
 async function loadTasks() {
   clearLists();
   const todayISO = new Date().toISOString().split('T')[0];
@@ -59,13 +58,17 @@ async function loadTasks() {
     .order('due_date', { ascending: true })
     .limit(1000);
 
-  if (error) { console.error(error); alert('Fehler beim Laden: ' + error.message); return; }
+  if (error) {
+    console.error(error);
+    alert('Fehler beim Laden: ' + error.message);
+    return;
+  }
 
   (data || []).forEach(entry => renderEntry(entry, todayISO));
   toggleHeadings();
 }
 
-function clearLists() { listToday.innerHTML=''; listAll.innerHTML=''; listDone.innerHTML=''; }
+function clearLists(){ listToday.innerHTML=''; listAll.innerHTML=''; listDone.innerHTML=''; }
 
 function toggleHeadings() {
   document.getElementById('heute-title').classList.toggle('visually-hidden', listToday.children.length===0);
@@ -82,7 +85,9 @@ function renderEntry(entry, todayISO) {
   const [y,m,d] = String(entry.due_date).split('-');
   const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   dateEl.textContent = parseInt(d,10)+'. '+monate[parseInt(m,10)-1]+' '+y;
-  const subjEl = document.createElement('span'); subjEl.className='subject'; subjEl.textContent = entry.subject;
+
+  const subjEl = document.createElement('span'); subjEl.className='subject';
+  subjEl.textContent = entry.subject;
   meta.append(dateEl, subjEl);
 
   const content = document.createElement('div'); content.className='content';
@@ -95,7 +100,7 @@ function renderEntry(entry, todayISO) {
 
   const controls = document.createElement('div'); controls.className='controls';
 
-  // Done-Checkbox (globaler Admin-Status)
+  // Done-Checkbox
   const chk = document.createElement('input');
   chk.type='checkbox'; chk.className='checkbox'; chk.checked = !!entry.done;
   chk.addEventListener('change', async () => {
@@ -105,29 +110,39 @@ function renderEntry(entry, todayISO) {
   });
   controls.append(chk);
 
-  // Edit-Button (Admin darf seine Aufgaben bearbeiten)
-  const editBtn = document.createElement('button');
-  editBtn.className = 'edit-button';
-  editBtn.textContent = '✏️';
-  editBtn.title = 'Aufgabe bearbeiten';
-  editBtn.addEventListener('click', () => {
-    editId = entry.id;
-    subjI.value  = entry.subject;
-    titleI.value = entry.title;
-    descI.value  = entry.description || '';
-    dateI.value  = String(entry.due_date);
-    form.scrollIntoView({ behavior: 'smooth' });
-    titleI.focus();
-  });
-  controls.append(editBtn);
-
-  // Trash (Admin darf löschen)
+  // 🗑️ Trash (gehärtet: genau 1 Zeile löschen)
   const del = document.createElement('button');
   del.className='trash-button'; del.innerHTML='🗑️'; del.title='Aufgabe löschen';
   del.addEventListener('click', async () => {
-    if (!confirm('Eintrag wirklich löschen?')) return;
-    const { error } = await supabase.from('admin_tasks').delete().eq('id', entry.id);
-    if (error) alert('Löschen fehlgeschlagen: ' + error.message);
+    if (!confirm(`Eintrag „${entry.title}” wirklich löschen?`)) return;
+
+    // 1) Sicherheitsabfrage: existiert genau diese ID?
+    const { data: checkRows, error: checkErr } = await supabase
+      .from('admin_tasks')
+      .select('id')
+      .eq('id', entry.id)
+      .limit(2);
+
+    if (checkErr) { alert('Prüfen fehlgeschlagen: ' + checkErr.message); return; }
+    if (!checkRows || checkRows.length !== 1) {
+      alert(`Unerwartete Trefferzahl beim Prüfen (=${checkRows?.length ?? 0}). Abbruch.`);
+      return;
+    }
+
+    // 2) Löschen nur dieser ID und Rückgabe prüfen
+    const { data: delRows, error: delErr } = await supabase
+      .from('admin_tasks')
+      .delete()
+      .eq('id', entry.id)
+      .select('id'); // erzwingt Rückgabe der gelöschten Zeilen
+
+    if (delErr) { alert('Löschen fehlgeschlagen: ' + delErr.message); return; }
+    if (!delRows || delRows.length !== 1) {
+      alert(`Unerwartete Löschmenge (=${delRows?.length ?? 0}). Abbruch.`);
+      return;
+    }
+
+    // 3) UI neu laden
     loadTasks();
   });
   controls.append(del);
@@ -141,23 +156,14 @@ function renderEntry(entry, todayISO) {
   else                                          { listAll.appendChild(li); }
 }
 
-/* ===== Neues Admin-Item / Bearbeiten ===== */
+/* ===== Neues Admin-Item ===== */
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const subject=subjI.value, title=titleI.value.trim(), due_date=dateI.value, description=descI.value.trim();
   if (!subject || !title || !due_date) return;
 
-  if (editId) {
-    const { error } = await supabase.from('admin_tasks')
-      .update({ subject, title, description, due_date })
-      .eq('id', editId);
-    if (error) { alert('Änderungen konnten nicht gespeichert werden: ' + error.message); return; }
-    editId = null;
-  } else {
-    const { error } = await supabase.from('admin_tasks')
-      .insert([{ subject, title, description, due_date, done:false }]);
-    if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
-  }
+  const { error } = await supabase.from('admin_tasks').insert([{ subject, title, description, due_date, done:false }]);
+  if (error) { alert('Speichern fehlgeschlagen: ' + error.message); return; }
 
   form.reset();
   await loadTasks();
