@@ -1,13 +1,13 @@
-/* Datei: public/admin.js  – als <script type="module" src="public/admin.js?v=del-guard-1"> einbinden */
+/* Datei: public/admin.js  – als <script type="module" src="public/admin.js?v=rt-1"> einbinden */
 
-const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';   // deine Werte beibehalten
+const SUPABASE_URL = 'https://dxzeleiiaitigzttbnaf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4emVsZWlpYWl0aWd6dHRibmFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDcxODQsImV4cCI6MjA3MjgyMzE4NH0.iXKtGyH0y8KUvAWLSJZKFIfz4VQ-y2PZBWucEg7ZHJ4';
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
-  db: { schema: 'app' } // Einheitlich: Schema "app"
+  db: { schema: 'app' }
 });
 
 /* ===== DOM ===== */
@@ -142,7 +142,6 @@ function renderEntry(entry, todayISO) {
       return;
     }
 
-    // 3) UI neu laden
     loadTasks();
   });
   controls.append(del);
@@ -155,6 +154,25 @@ function renderEntry(entry, todayISO) {
   else if (String(entry.due_date) < todayISO)   { li.classList.add('overdue');   listAll.appendChild(li); }
   else                                          { listAll.appendChild(li); }
 }
+
+/* ===== Realtime ===== */
+let chAdmin = null;
+
+function setupRealtime() {
+  if (chAdmin) supabase.removeChannel(chAdmin);
+
+  chAdmin = supabase
+    .channel('rt-admin-tasks')
+    .on('postgres_changes', { event: '*', schema: 'app', table: 'admin_tasks' }, () => {
+      // Jede Änderung → UI aktualisieren
+      loadTasks();
+    })
+    .subscribe();
+}
+
+window.addEventListener('beforeunload', () => {
+  if (chAdmin) supabase.removeChannel(chAdmin);
+});
 
 /* ===== Neues Admin-Item ===== */
 form?.addEventListener('submit', async (e) => {
@@ -171,6 +189,9 @@ form?.addEventListener('submit', async (e) => {
 
 /* ===== Start ===== */
 (async () => {
-  try { await requireAdmin(); await loadTasks(); }
-  catch (e) { console.error(e); }
+  try {
+    await requireAdmin();
+    await loadTasks();
+    setupRealtime();
+  } catch (e) { console.error(e); }
 })();
