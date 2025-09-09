@@ -1,6 +1,6 @@
 /* Datei: service-worker.js – Netzwerk-first für HTML/JS, SW-safe Caching */
 
-const CACHE_NAME = 'hausaufgaben-v11'; // <— bei Änderungen hochzählen!
+const CACHE_NAME = 'hausaufgaben-v12'; // <— bei Änderungen hochzählen!
 
 self.addEventListener('install', (event) => {
   // sofort aktiv werden
