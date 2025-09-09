@@ -45,3 +45,5 @@
   background: rgba(0, 120, 212, 0.1);
   color: #005BB5;
 }
+/* SuS: Settings-Button ausblenden */
+.tab-settings-btn { display: none !important; }
