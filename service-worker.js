@@ -1,123 +1,76 @@
-// Datei: service-worker.js
-// Robuster SW mit Versionierung, gezieltem Caching und sauberem Upgrade
+/* Datei: service-worker.js – Netzwerk-first für HTML/JS, SW-safe Caching */
 
-const CACHE_NAME = 'hausaufgaben-v7';
-
-// Nur die wirklich zentralen, stabilen Assets vorab cachen.
-// (Fehlende Dateien brechen die Installation NICHT ab.)
-const PRECACHE_ASSETS = [
-  'index.html',
-  'admin.html',
-  'sus.html',
-  'manifest.json',
-
-  // App-Icons und Sounds
-  'assets/logo-huttwil.svg',
-  'assets/gear.svg',
-  'assets/sounds/tap-tiny-wooden.mp3',
-  'assets/favicon-32.png',
-  'assets/apple-touch-icon.png',
-
-  // Styles
-  'public/fade.css',
-  'public/style-index.css',
-  'public/style-shared.css',
-  'public/style-settings.css',
-  'public/style-sus.css',
-  'public/style-admin.css',
-
-  // Scripts
-  'public/admin.js',
-  'public/sus.js',
-  'public/style-settings-overlay.js'
-];
-
-// Hilfsfunktion: sicher in Cache ablegen (ohne Install zu brechen)
-async function safeAddAll(cache, urls) {
-  await Promise.all(urls.map(async (url) => {
-    try {
-      const res = await fetch(url, { cache: 'no-cache' });
-      if (res && res.ok) {
-        await cache.put(url, res.clone());
-      } else {
-        // stillschweigend überspringen, wenn 404/500 etc.
-      }
-    } catch (_) {
-      // Netzwerkfehler: überspringen
-    }
-  }));
-}
+const CACHE_NAME = 'hausaufgaben-v7'; // <— bei Änderungen hochzählen!
 
 self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await safeAddAll(cache, PRECACHE_ASSETS);
-    // Sofort aktiv werden
-    await self.skipWaiting();
-  })());
+  // sofort aktiv werden
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // alte Caches löschen & Clients übernehmen
   event.waitUntil((async () => {
-    // Alte Caches wegräumen
     const keys = await caches.keys();
-    await Promise.all(
-      keys
-        .filter((k) => k !== CACHE_NAME)
-        .map((k) => caches.delete(k))
-    );
+    await Promise.all(keys.map(k => k === CACHE_NAME ? null : caches.delete(k)));
     await self.clients.claim();
   })());
 });
 
-// Strategien:
-// - HTML/Navigations-Requests: network-first, Fallback Cache
-// - Sonst: cache-first, Fallback Netz
+/**
+ * Routing-Regeln:
+ * - HTML-Navigation & .html & .js  => network-first (immer neu, Cache nur Fallback)
+ * - CSS/Fonts/Images/Audio         => stale-while-revalidate (schnell + im Hintergrund aktualisieren)
+ * - Rest                            => passthrough (direkt aus dem Netz)
+ */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  if (req.method !== 'GET') return;
 
-  // Non-GET nicht anfassen
-  if (req.method !== 'GET') {
-    return;
-  }
+  const url = new URL(req.url);
+  const isHTML = req.mode === 'navigate' || url.pathname.endsWith('.html');
+  const isJS   = url.pathname.endsWith('.js') || url.searchParams.has('v'); // Versionierte Module
+  const isAsset= /\.(css|png|jpg|jpeg|gif|svg|ico|webp|mp3|wav|woff2?|ttf|eot)$/i.test(url.pathname);
 
-  // Navigations-/HTML-Requests → network-first
-  if (req.mode === 'navigate' || (req.destination === 'document')) {
+  if (isHTML || isJS) {
+    // network-first
     event.respondWith((async () => {
       try {
-        const fresh = await fetch(req, { cache: 'no-cache' });
-        // Erfolgreiche Antwort cachen
+        const net = await fetch(req, { cache: 'no-store' });
         const cache = await caches.open(CACHE_NAME);
-        cache.put(req, fresh.clone());
-        return fresh;
-      } catch (_) {
-        // Fallback: Cache
-        const cached = await caches.match(req);
-        if (cached) return cached;
-        // Letzter Fallback: index.html
-        return caches.match('index.html');
+        cache.put(req, net.clone());
+        return net;
+      } catch {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(req, { ignoreSearch: false });
+        return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
       }
     })());
     return;
   }
 
-  // Für statische Assets → cache-first
-  event.respondWith((async () => {
-    const cached = await caches.match(req);
-    if (cached) return cached;
-
-    try {
-      const res = await fetch(req);
-      // Erfolgreiches Ergebnis opportunistisch cachen
+  if (isAsset) {
+    // stale-while-revalidate
+    event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
-      cache.put(req, res.clone());
-      return res;
-    } catch (_) {
-      // Netzfehler und nichts im Cache
-      return new Response('Offline und Ressource nicht im Cache.', {
-        status: 503,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-      });
-    }
-  })());
+      const cached = await cache.match(req);
+      const fetchPromise = fetch(req).then((net) => {
+        cache.put(req, net.clone());
+        return net;
+      }).catch(() => null);
+      return cached || fetchPromise || fetch(req);
+    })());
+    return;
+  }
+
+  // default: passthrough
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'CLEAR_SW') {
+    (async () => {
+      const regs = await self.registration.unregister();
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    })();
+  }
 });
